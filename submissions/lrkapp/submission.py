@@ -1,7 +1,7 @@
 """Submission by David Tweedle to ML Commons algorithmic-efficiency contest
+reference_algorithms/paper_baselines/momentum/pytorch/submission.py used as a base
 
-
-
+Added low rank approximation to SGD
 """
 
 from typing import Callable, Dict, Iterator, List, Tuple
@@ -15,7 +15,7 @@ from torch.optim.lr_scheduler import LambdaLR
 from algorithmic_efficiency import spec
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
-USE_PYTORCH_DDP = pytorch_setup()[0]
+USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
 
 def init_optimizer_state(workload: spec.Workload,
                          model_params: spec.ParameterContainer,
@@ -88,40 +88,47 @@ def update_params(workload: spec.Workload,
   del loss_type
   del eval_results
 
+  ddp = model_state[0]
+  assert USE_PYTORCH_DDP
+
   current_model = current_param_container
   current_model.train()
   optimizer_state['optimizer'].zero_grad()
 
-  logits_batch, new_model_state = workload.model_fn(
-      params=current_model,
-      augmented_and_preprocessed_input_batch=batch,
-      model_state=model_state,
-      mode=spec.ForwardPassMode.TRAIN,
-      rng=rng,
-      update_batch_norm=True)
+  with ddp.no_sync():
+    logits_batch, new_model_state = workload.model_fn(
+        params=current_model,
+        augmented_and_preprocessed_input_batch=batch,
+        model_state=model_state,
+        mode=spec.ForwardPassMode.TRAIN,
+        rng=rng,
+        update_batch_norm=True)
 
-  label_smoothing = (
-      hyperparameters.label_smoothing if hasattr(hyperparameters,
+    label_smoothing = (
+        hyperparameters.label_smoothing if hasattr(hyperparameters,
                                                  'label_smoothing') else 0.0)
-  if hasattr(hyperparameters, 'grad_clip'):
-    grad_clip = hyperparameters.grad_clip
-  else:
-    grad_clip = None
+    if hasattr(hyperparameters, 'grad_clip'):
+      grad_clip = hyperparameters.grad_clip
+    else:
+      grad_clip = None
 
-  loss_dict = workload.loss_fn(
-      label_batch=batch['targets'],
-      logits_batch=logits_batch,
-      mask_batch=batch.get('weights'),
-      label_smoothing=label_smoothing)
-  summed_loss = loss_dict['summed']
-  n_valid_examples = loss_dict['n_valid_examples']
-  if USE_PYTORCH_DDP:
-    # Use dist_nn.all_reduce to ensure correct loss and gradient scaling.
-    summed_loss = dist_nn.all_reduce(summed_loss)
-    n_valid_examples = dist_nn.all_reduce(n_valid_examples)
-  loss = summed_loss / n_valid_examples
-
-  loss.backward()
+    loss_dict = workload.loss_fn(
+        label_batch=batch['targets'],
+        logits_batch=logits_batch,
+        mask_batch=batch.get('weights'),
+        label_smoothing=label_smoothing)
+    summed_loss = loss_dict['summed']
+    n_valid_examples = loss_dict['n_valid_examples']
+    loss = summed_loss / n_valid_examples
+    loss.backward()
+    for p in current_model.parameters():
+      if p.grad is not None and len(p.grad.size()) >= 2:
+        p.grad = approximator(p.grad)
+    for p in current_model.parameters():
+      dist_nn.all_reduce(p.grad)
+    dist_nn.all_reduce(summed_loss)
+    dist_nn.all_reduce(n_valid_examples)
+    loss = summed_loss / n_valid_examples
 
   if grad_clip is not None:
     torch.nn.utils.clip_grad_norm_(
@@ -181,3 +188,5 @@ def data_selection(workload: spec.Workload,
      batch: next batch of input data
     """
   pass
+
+def approximator(l...)
