@@ -17,6 +17,9 @@ from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
 
+import tensorly as tl
+tl.set_backend("pytorch")
+
 def init_optimizer_state(workload: spec.Workload,
                          model_params: spec.ParameterContainer,
                          model_state: spec.ModelAuxiliaryState,
@@ -87,6 +90,7 @@ def update_params(workload: spec.Workload,
   del current_params_types
   del loss_type
   del eval_results
+
 
   ddp = model_state[0]
   assert USE_PYTORCH_DDP
@@ -168,7 +172,26 @@ def get_batch_size(workload_name):
     Raises:
       ValueError: If workload_name is not handled.
     """
-  pass
+  if workload_name == 'criteo1tb':
+    return N_GPUS * 262_144
+  elif workload_name == 'fastmri':
+    return N_GPUS * 32
+  elif workload_name == 'imagenet_resnet':
+    return N_GPUS * 1024
+  elif workload_name == 'imagenet_vit':
+    return N_GPUS * 1024
+  elif workload_name == 'librispeech_conformer':
+    return N_GPUS * 256
+  elif workload_name == 'librispeech_deepspeech':
+    return N_GPUS * 256
+  elif workload_name == 'ogbg':
+    return N_GPUS * 512
+  elif workload_name == 'wmt':
+    return N_GPUS * 128
+  elif workload_name == 'mnist':
+    return N_GPUS * 16
+  else:
+    raise ValueError(f'Unsupported workload name: {workload_name}.')
 
 
 def data_selection(workload: spec.Workload,
@@ -187,6 +210,19 @@ def data_selection(workload: spec.Workload,
     Returns:
      batch: next batch of input data
     """
-  pass
+  return next(input_queue)
 
-def approximator(l...)
+def approximator(grad: torch.tensor):
+  """
+  Replace a gradient with a low rank approximation
+  For this purposes of this test, we will use
+  CP decomposition from tensorly
+  rank of 1
+  """
+  return tl.cp_tensor.cp_to_tensor(
+            tl.decomposition.CP(rank=1,
+                                tol=0.1,
+                                init="random",
+                                n_iter_max=5
+                                ).fit_transform(grad)
+            )
