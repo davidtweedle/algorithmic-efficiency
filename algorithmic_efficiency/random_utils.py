@@ -34,13 +34,14 @@ def _signed_to_unsigned(seed: SeedType) -> SeedType:
 
 
 def _fold_in(seed: SeedType, data: Any) -> List[Union[SeedType, Any]]:
-  rng = np.random.default_rng(seed=seed)
+  rng = np.random.default_rng(seed=_signed_to_unsigned(seed))
   new_seed = rng.integers(MIN_INT32, MAX_INT32, dtype=np.int32)
   return [new_seed, data]
 
 
 def _split(seed: SeedType, num: int = 2) -> SeedType:
-  rng = np.random.default_rng(seed=seed)
+  print(_signed_to_unsigned(seed))
+  rng = np.random.default_rng(seed=_signed_to_unsigned(seed))
   return rng.integers(MIN_INT32, MAX_INT32, dtype=np.int32, size=[num, 2])
 
 
