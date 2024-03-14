@@ -32,6 +32,9 @@ def init_optimizer_state(workload: spec.Workload,
   """
   del model_state
   del rng
+  hyperparameters.learning_rate = 0.5
+  hyperparameters.momentum = 0
+  hyperparameters.l2 = 0
 
   optimizer_state = {
       'optimizer':
