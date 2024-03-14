@@ -190,6 +190,8 @@ def get_batch_size(workload_name):
     return N_GPUS * 128
   elif workload_name == 'mnist':
     return N_GPUS * 16
+  elif workload_name =='cifar':
+    return N_GPUS * 128
   else:
     raise ValueError(f'Unsupported workload name: {workload_name}.')
 
