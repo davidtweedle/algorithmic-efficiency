@@ -33,10 +33,11 @@ def init_optimizer_state(workload: spec.Workload,
   del model_state
   del rng
   if hyperparameters is None:
-    hyperparameters = spec.Hyperparameters()
-    hyperparameters.learning_rate = 0.5
-    hyperparameters.momentum = 0
-    hyperparameters.l2 = 0
+    hparams_dict = {'learning_rate': 0.5,
+                    'momentum': 0,
+                    'l2': 0
+                    }
+    hparams = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
 
   optimizer_state = {
       'optimizer':
