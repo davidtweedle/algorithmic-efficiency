@@ -5,6 +5,7 @@ Added low rank approximation to SGD
 """
 
 from typing import Callable, Dict, Iterator, List, Tuple
+import collections
 
 from absl import logging
 import optax
