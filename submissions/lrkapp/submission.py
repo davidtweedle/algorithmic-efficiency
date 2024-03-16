@@ -38,7 +38,7 @@ def init_optimizer_state(workload: spec.Workload,
                     'momentum': 0,
                     'l2': 0
                     }
-    hparams = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
+    hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
 
   optimizer_state = {
       'optimizer':
