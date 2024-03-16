@@ -231,10 +231,7 @@ def approximator(grad: torch.tensor):
   CP decomposition from tensorly
   rank of 1
   """
-  return tl.cp_tensor.cp_to_tensor(
-            tl.decomposition.CP(rank=1,
-                                tol=0.1,
-                                init="random",
-                                n_iter_max=5
-                                ).fit_transform(grad)
-            )
+  decomp = tl.decomposition.CP(rank=1, tol=0.1, init="random", n_iter_max=5)
+  cp = decomp.fit_transform(grad)
+  return tl.cp_tensor.cp_to_tensor(cp)
+
