@@ -33,6 +33,7 @@ def init_optimizer_state(workload: spec.Workload,
   """
   del model_state
   del rng
+
   if hyperparameters is None:
     hparams_dict = {'learning_rate': 0.5,
                     'momentum': 0,
@@ -102,14 +103,13 @@ def update_params(workload: spec.Workload,
   del eval_results
 
 
-  ddp = model_state[0]
   assert USE_PYTORCH_DDP
 
   current_model = current_param_container
   current_model.train()
   optimizer_state['optimizer'].zero_grad()
 
-  with ddp.no_sync():
+  with current_model.no_sync():
     logits_batch, new_model_state = workload.model_fn(
         params=current_model,
         augmented_and_preprocessed_input_batch=batch,
