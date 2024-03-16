@@ -40,7 +40,7 @@ def _fold_in(seed: SeedType, data: Any) -> List[Union[SeedType, Any]]:
 
 
 def _split(seed: SeedType, num: int = 2) -> SeedType:
-  print(seed, _signed_to_unsigned(seed))
+  print("Seed is ",seed, " and unsigned seed is ", _signed_to_unsigned(seed))
   rng = np.random.default_rng(seed=_signed_to_unsigned(seed))
   return rng.integers(MIN_INT32, MAX_INT32, dtype=np.int32, size=[num, 2])
 
