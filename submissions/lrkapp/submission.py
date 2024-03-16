@@ -235,7 +235,7 @@ def approximator(grad: torch.tensor):
   decomp = tl.decomposition.CP(rank=1, tol=0.1, init="random", n_iter_max=5, verbose=2)
   try:
     cp = decomp.fit_transform(grad)
-  except torch.C._LinAlgError:
+  except torch._C._LinAlgError:
     return grad
   return tl.cp_tensor.cp_to_tensor(cp)
 
