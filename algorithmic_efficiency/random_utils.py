@@ -26,8 +26,10 @@ SeedType = Union[int, list, np.ndarray]
 
 def _signed_to_unsigned(seed: SeedType) -> SeedType:
   if isinstance(seed, int):
+    print(seed + 2 ** 64)
     return seed + 2 ** 64 if seed < 0 else seed
   if isinstance(seed, list):
+    print([s + 2 ** 64 if s < 0 else s for s in seed])
     return [s + 2 ** 64 if s < 0 else s for s in seed]
   if isinstance(seed, np.ndarray):
     return np.array([s + 2 ** 64 if s < 0 else s for s in seed.tolist()])
