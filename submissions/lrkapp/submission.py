@@ -40,6 +40,10 @@ def init_optimizer_state(workload: spec.Workload,
                     'warmup_factor': 0.05,
                     'end_factor': 0.001,
                     'decay_steps_factor': 0.9
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
                     }
     hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
 
@@ -82,7 +86,7 @@ def create_lr_schedule_fn(
 
 def update_params(workload: spec.Workload,
                   current_param_container: spec.ParameterContainer,
-                  current_pa,ams_types: spec.ParameterTypeTree,
+                  current_params_types: spec.ParameterTypeTree,
                   model_state: spec.ModelAuxiliaryState,
                   hyperparameters: spec.Hyperparameters,
                   batch: Dict[str, spec.Tensor],
