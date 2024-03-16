@@ -37,7 +37,8 @@ def init_optimizer_state(workload: spec.Workload,
     hparams_dict = {'learning_rate': 0.5,
                     'momentum': 0,
                     'l2': 0,
-                    'warmup_factor': 0.05
+                    'warmup_factor': 0.05,
+                    'end_factor': 0.001
                     }
     hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
 
