@@ -604,7 +604,6 @@ def score_submission_on_workload(workload: spec.Workload,
           'Cannot provide a tuning search space when using self tuning.')
     if not rng_seed:
       rng_seed = struct.unpack('q', os.urandom(8))[0]
-      print(rng_seed)
     rng = prng.PRNGKey(rng_seed)
     # If the submission is responsible for tuning itself, we only need to run it
     # once and return the total time.
