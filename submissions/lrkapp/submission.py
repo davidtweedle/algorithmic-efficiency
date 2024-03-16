@@ -137,6 +137,7 @@ def update_params(workload: spec.Workload,
     loss.backward()
     for p in current_model.parameters():
       if p.grad is not None and len(p.grad.size()) >= 2:
+        print(p.grad.size())
         p.grad = approximator(p.grad)
     for p in current_model.parameters():
       dist_nn.all_reduce(p.grad)
