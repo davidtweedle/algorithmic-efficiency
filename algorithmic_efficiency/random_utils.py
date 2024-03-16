@@ -26,7 +26,8 @@ SeedType = Union[int, list, np.ndarray]
 
 def _signed_to_unsigned(seed: SeedType) -> SeedType:
   if isinstance(seed, int):
-    print("Seed is ",seed, "and shifted seed is ", seed + 2 ** 32, "and further shifted seed is ",seed + 2 ** 64)
+    if seed < -(2 ** 32 - 1):
+      print("ERROR")
     return seed + 2**32 if seed < 0 else seed
   if isinstance(seed, list):
     return [s + 2**32 if s < 0 else s for s in seed]
