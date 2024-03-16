@@ -231,7 +231,7 @@ def approximator(grad: torch.tensor):
   CP decomposition from tensorly
   rank of 1
   """
-  decomp = tl.decomposition.CP(rank=1, tol=0.1, init="random", n_iter_max=5, verbose=2)
+  decomp = tl.decomposition.CP(rank=1, tol=0.1, init="random", n_iter_max=5)
   try:
     cp = decomp.fit_transform(grad)
   except torch._C._LinAlgError:
