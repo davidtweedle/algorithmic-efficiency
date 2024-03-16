@@ -83,7 +83,7 @@ def create_lr_schedule_fn(
 
 def update_params(workload: spec.Workload,
                   current_param_container: spec.ParameterContainer,
-                  current_pa,ams_types: spec.ParameterTypeTree,
+                  current_params_types: spec.ParameterTypeTree,
                   model_state: spec.ModelAuxiliaryState,
                   hyperparameters: spec.Hyperparameters,
                   batch: Dict[str, spec.Tensor],
