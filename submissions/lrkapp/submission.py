@@ -33,52 +33,42 @@ def init_optimizer_state(workload: spec.Workload,
   """
   del model_state
   del rng
-
   if hyperparameters is None:
-    hparams_dict = {'learning_rate': 0.5,
-                    'momentum': 0,
-                    'l2': 0,
-                    'warmup_factor': 0.05,
-                    'end_factor': 0.001,
-                    'decay_steps_factor': 0.9
+    hparams_dict = {'learning_rate': 0.1,
+                    'warmup_epochs': 5,
+                    'num_epochs': 200,
+                    'momentum': 0.9,
+                    'l2': 5e-4,
                     }
     hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
+  
 
+  base_lr = hyperparameters.learning_rate
   optimizer_state = {
       'optimizer':
           torch.optim.SGD(
               model_params.parameters(),
-              lr=hyperparameters.learning_rate,
+              lr=base_lr,
               momentum=hyperparameters.momentum,
               weight_decay=hyperparameters.l2),
   }
 
-  lr_schedule_fn = create_lr_schedule_fn(workload.step_hint, hyperparameters)
-  def _lr_lambda(step: int) -> float:
-    return lr_schedule_fn(step).item() / hyperparameters.learning_rate
+  scheduler1 = LinearLR(
+      optimizer_state['optimizer'],
+      start_factor=1e-5,
+      end_factor=1.,
+      total_iters=hyperparameters.warmup_epochs)
+  cosine_epochs = max(
+      hyperparameters.num_epochs - hyperparameters.warmup_epochs, 1)
+  scheduler2 = CosineAnnealingLR(
+      optimizer_state['optimizer'], T_max=cosine_epochs)
 
-  optimizer_state['scheduler'] = LambdaLR(
-      optimizer_state['optimizer'], lr_lambda=_lr_lambda)
+  optimizer_state['scheduler'] = SequentialLR(
+      optimizer_state['optimizer'],
+      schedulers=[scheduler1, scheduler2],
+      milestones=[hyperparameters.warmup_epochs])
 
   return optimizer_state
- 
-def create_lr_schedule_fn(
-    step_hint: int,
-    hyperparameters: spec.Hyperparameters) -> Callable[[int], float]:
-  warmup_steps = int(hyperparameters.warmup_factor * step_hint)
-  warmup_fn = optax.linear_schedule(
-      init_value=0.,
-      end_value=hyperparameters.learning_rate,
-      transition_steps=warmup_steps)
-  decay_steps = step_hint - warmup_steps
-  polynomial_schedule_fn = optax.polynomial_schedule(
-      init_value=hyperparameters.learning_rate,
-      end_value=hyperparameters.learning_rate * hyperparameters.end_factor,
-      power=1,
-      transition_steps=int(decay_steps * hyperparameters.decay_steps_factor))
-  lr_schedule_fn = optax.join_schedules(
-      schedules=[warmup_fn, polynomial_schedule_fn], boundaries=[warmup_steps])
-  return lr_schedule_fn
 
 
 def update_params(workload: spec.Workload,
@@ -234,7 +224,8 @@ def approximator(grad: torch.tensor):
   decomp = tl.decomposition.CP(rank=1, tol=0.1, init="random", n_iter_max=5)
   try:
     cp = decomp.fit_transform(grad)
-  except torch._C._LinAlgError:
+  except torch._C._LinAlgError as err
+    print(err)
     return grad
   return tl.cp_tensor.cp_to_tensor(cp)
 
