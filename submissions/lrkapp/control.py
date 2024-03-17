@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import SequentialLR
 
 from algorithmic_efficiency import spec
 
-
+import collections
 
 def init_optimizer_state(workload: spec.Workload,
                          model_params: spec.ParameterContainer,
