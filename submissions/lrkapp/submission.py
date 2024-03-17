@@ -7,6 +7,11 @@ Added low rank approximation to SGD
 from typing import Callable, Dict, Iterator, List, Tuple
 import collections
 
+from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import LinearLR
+from torch.optim.lr_scheduler import SequentialLR
+
+
 from absl import logging
 import optax
 import torch
