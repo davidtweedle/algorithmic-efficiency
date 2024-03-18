@@ -78,8 +78,6 @@ def update_params(workload: spec.Workload,
   # optimizer_state['optimizer'].step()
 
   steps_per_epoch = workload.num_train_examples // get_batch_size('cifar')
-  if (global_step + 1) % steps_per_epoch == 0:
-    optimizer_state['scheduler'].step()
 
   return (optimizer_state, current_param_container, new_model_state)
 
