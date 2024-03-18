@@ -75,7 +75,7 @@ def update_params(workload: spec.Workload,
   loss = loss_dict['summed'] / loss_dict['n_valid_examples']
 
   loss.backward()
-  optimizer_state['optimizer'].step()
+  # optimizer_state['optimizer'].step()
 
   steps_per_epoch = workload.num_train_examples // get_batch_size('cifar')
   if (global_step + 1) % steps_per_epoch == 0:
