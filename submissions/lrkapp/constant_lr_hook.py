@@ -44,7 +44,6 @@ def init_optimizer_state(workload: spec.Workload,
           {'cp': cp, 'rank': 1, 'gpu_id': RANK}, 
           cp_hook
           )
-  model_params.add_comm_hook
   if hyperparameters is None:
     hparams_dict = {'learning_rate': 0.5,
                     'num_epochs': 200,
