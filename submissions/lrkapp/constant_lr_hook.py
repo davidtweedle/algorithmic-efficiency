@@ -207,10 +207,11 @@ def cp_hook(state, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor
     cp = state["cp"]
     for grad in bucket.gradients():
         if len(grad.size()) >= 2:
-            weights, factors = cp.fit_transform(tensor=grad)
-            weights = weights[:rank]
-            factors = [factor[:, :rank] for factor in factors]
-            grad = tl.cp_tensor.cp_to_tensor((weights, factors))
+            try:
+              decomp = cp.fit_transform(grad)
+              grad = tl.cp_tensor.cp_to_tensor(decomp)
+            except torch._C._LinAlgError as err:
+              print(err)
     fut = torch.futures.Future()
     fut.set_result(bucket.buffer())
     return fut
