@@ -214,8 +214,8 @@ def cp_hook(state, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor
             print(err)
         elif len(grad.size()) == 2:
           try:
-            U,S,V = tl.tenalg.svd_interface(matrix=grad, n_eigenvecs=rank, tol=0.1)
-            grad = (U * S) @ tl.transpose(V)
+            U,S,Vh = tl.tenalg.svd_interface(matrix=grad, n_eigenvecs=rank, tol=0.1)
+            grad = (U * S) @ Vh
           except torch._C._LinAlgError as err:
             print(err)
     fut = torch.futures.Future()
