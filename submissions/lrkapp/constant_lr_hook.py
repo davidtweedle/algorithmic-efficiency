@@ -45,10 +45,10 @@ def init_optimizer_state(workload: spec.Workload,
           cp_hook
           )
   if hyperparameters is None:
-    hparams_dict = {'learning_rate': 0.5,
+    hparams_dict = {'learning_rate': 0.25,
                     'num_epochs': 200,
-                    'momentum': 0,
-                    'l2': 0,
+                    'momentum': 0.9,
+                    'l2': 5e-4,
                     }
     hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
   
