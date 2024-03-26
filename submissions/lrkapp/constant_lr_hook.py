@@ -39,9 +39,9 @@ def init_optimizer_state(workload: spec.Workload,
   """
   del model_state
   del rng
-  cp = tl.decomposition.CP(rank=1, tol=0.1, init='random', n_iter_max=2)
+  cp = tl.decomposition.CP(rank=1, tol=0.1, init='random', n_iter_max=5)
   model_params.register_comm_hook(
-          {'cp': cp, 'rank': 1, 'gpu_id': RANK}, 
+          {'cp': cp, 'rank': 5, 'gpu_id': RANK}, 
           cp_hook
           )
   if hyperparameters is None:
@@ -206,12 +206,18 @@ def cp_hook(state, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor
     gpu_id = state["gpu_id"]
     cp = state["cp"]
     for grad in bucket.gradients():
-        if len(grad.size()) >= 2:
-            try:
-              decomp = cp.fit_transform(grad)
-              grad = tl.cp_tensor.cp_to_tensor(decomp)
-            except torch._C._LinAlgError as err:
-              print(err)
+        if len(grad.size()) > 2:
+          try:
+            decomp = cp.fit_transform(grad)
+            grad = tl.cp_tensor.cp_to_tensor(decomp)
+          except torch._C._LinAlgError as err:
+            print(err)
+        elif len(grad.size()) == 2:
+          try:
+            U,S,V = tl.partial_svd(matrix=grad, n_eigenvecs=rank, tol=0.1)
+            grad = (U * S) @ tl.transpose(V)
+          except torch._C._LinAlgError as err:
+            print(err)
     fut = torch.futures.Future()
     fut.set_result(bucket.buffer())
     return fut
