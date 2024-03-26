@@ -41,11 +41,11 @@ def init_optimizer_state(workload: spec.Workload,
   del rng
   cp = tl.decomposition.CP(rank=1, tol=0.1, init='random', n_iter_max=5)
   model_params.register_comm_hook(
-          {'cp': cp, 'rank': 5, 'gpu_id': RANK}, 
+          {'cp': cp, 'rank': 10, 'gpu_id': RANK}, 
           cp_hook
           )
   if hyperparameters is None:
-    hparams_dict = {'learning_rate': 0.25,
+    hparams_dict = {'learning_rate': 0.1,
                     'num_epochs': 200,
                     'momentum': 0.9,
                     'l2': 5e-4,
