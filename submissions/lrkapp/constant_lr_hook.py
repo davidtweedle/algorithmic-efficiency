@@ -37,7 +37,6 @@ def init_optimizer_state(workload: spec.Workload,
   optimizer state
   optimizer_update_fn
   """
-  del rng
   if hyperparameters is None:
     hparams_dict = {'learning_rate': 0.1,
                     'momentum': 0,
