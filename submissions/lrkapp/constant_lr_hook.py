@@ -44,7 +44,6 @@ def init_optimizer_state(workload: spec.Workload,
                     'cp_rank': 1,
                     'svd_rank': 10,
                     'tol': 1e-1,
-                    'random_state': rng
                     }
     hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
   cp = tl.decomposition.CP(rank=hyperparameters.cp_rank,
@@ -59,6 +58,7 @@ def init_optimizer_state(workload: spec.Workload,
            'gpu_id': RANK,
            'n_gpus': N_GPUS,
            'tol': hyperparameters.tol,
+           'random_state': rng,
            }, 
           cp_hook
           )
