@@ -4,5 +4,5 @@
     "l2": {"feasible_points": [0,5e-4]},
     "cp_rank": {"feasible_points": [1,2,3,4]},
     "svd_rank": {"feasible_points": [3,5,10,20]},
-    "tol": {"feasible_points": [1,0.1,0.01,0.001]},
+    "tol": {"feasible_points": [1,0.1,0.01,0.001]}
 }
