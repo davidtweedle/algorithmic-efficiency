@@ -58,7 +58,7 @@ def init_optimizer_state(workload: spec.Workload,
            'gpu_id': RANK,
            'n_gpus': N_GPUS,
            'tol': hyperparameters.tol,
-           'random_state': int(rng),
+           'random_state': int(rng[0]),
            }, 
           cp_hook
           )
