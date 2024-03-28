@@ -37,7 +37,6 @@ def init_optimizer_state(workload: spec.Workload,
   optimizer state
   optimizer_update_fn
   """
-  del model_state
   del rng
   if hyperparameters is None:
     hparams_dict = {'learning_rate': 0.1,
@@ -46,6 +45,7 @@ def init_optimizer_state(workload: spec.Workload,
                     'cp_rank': 1,
                     'svd_rank': 10,
                     'tol': 1e-1,
+                    'random_state': rng
                     }
     hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
   cp = tl.decomposition.CP(rank=hyperparameters.cp_rank,
@@ -216,6 +216,7 @@ def cp_hook(state, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor
     gpu_id = state["gpu_id"]
     cp = state["cp"]
     n_gpus = state["n_gpus"]
+    random_state = state["random_state"]
     for grad in bucket.gradients():
       if len(grad.size()) > 2:
         try:
@@ -227,8 +228,9 @@ def cp_hook(state, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor
         try:
           U,S,Vh = tl.tenalg.svd_interface(
                   matrix=grad,
+                  method="randomized_svd",
                   n_eigenvecs=svd_rank,
-                  tol=tol
+                  random_state=random_state
                   )
           grad = (U * S) @ Vh
         except torch._C._LinAlgError as err:
