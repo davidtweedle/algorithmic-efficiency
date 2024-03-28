@@ -234,5 +234,4 @@ def cp_hook(state, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor
         except torch._C._LinAlgError as err:
           print(err)
       grad.div_(n_gpus)
-    return dist.all_reduce(bucket.buffer(), async_op=True).get_future()
-      .then(lambda fut: fut.value()[0])
+    return dist.all_reduce(bucket.buffer(), async_op=True).get_future().then(lambda fut: fut.value()[0])
