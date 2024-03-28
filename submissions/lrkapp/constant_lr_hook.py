@@ -235,4 +235,4 @@ def cp_hook(state, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor
           print(err)
       grad.div_(n_gpus)
     return dist.all_reduce(bucket.buffer(), async_op=True).get_future()
-        .then(lambda fut: fut.value()[0])
+      .then(lambda fut: fut.value()[0])
