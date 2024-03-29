@@ -13,6 +13,8 @@ from torch.optim.lr_scheduler import SequentialLR
 
 import torch.distributed as dist
 
+import numpy as np
+
 from absl import logging
 import optax
 import torch
@@ -58,7 +60,7 @@ def init_optimizer_state(workload: spec.Workload,
            'gpu_id': RANK,
            'n_gpus': N_GPUS,
            'tol': hyperparameters.tol,
-           'random_state': np.random.randomstate(seed=rng)
+           'random_state': np.random.RandomState(seed=rng)
            }, 
           cp_hook
           )
