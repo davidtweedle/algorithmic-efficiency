@@ -37,22 +37,30 @@ def init_optimizer_state(workload: spec.Workload,
   optimizer state
   optimizer_update_fn
   """
-  del model_state
-  del rng
-  cp = tl.decomposition.CP(rank=1, tol=0.1, init='random', n_iter_max=2)
-  model_params.register_comm_hook(
-          {'cp': cp, 'rank': 1, 'gpu_id': RANK}, 
-          cp_hook
-          )
-  model_params.add_comm_hook
   if hyperparameters is None:
-    hparams_dict = {'learning_rate': 0.5,
-                    'num_epochs': 200,
+    hparams_dict = {'learning_rate': 0.1,
                     'momentum': 0,
                     'l2': 0,
+                    'cp_rank': 1,
+                    'svd_rank': 10,
+                    'tol': 1e-1,
                     }
     hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
-  
+  cp = tl.decomposition.CP(rank=hyperparameters.cp_rank,
+                           tol=hyperparameters.tol,
+                           init='random',
+                           n_iter_max=5
+                           )
+  model_params.register_comm_hook(
+          {'cp': cp, 
+           'svd_rank': hyperparameters.svd_rank, 
+           'gpu_id': RANK,
+           'n_gpus': N_GPUS,
+           'tol': hyperparameters.tol,
+           'random_state': rng[0] if rng[0] >= 0 else rng[0] + 2 ** 32
+           }, 
+          cp_hook
+          )
 
   base_lr = hyperparameters.learning_rate
   optimizer_state = {
@@ -118,8 +126,6 @@ def update_params(workload: spec.Workload,
       label_smoothing=label_smoothing)
   summed_loss = loss_dict['summed']
   n_valid_examples = loss_dict['n_valid_examples']
-  dist_nn.all_reduce(summed_loss)
-  dist_nn.all_reduce(n_valid_examples)
   loss = summed_loss / n_valid_examples
   loss.backward()
 
@@ -161,25 +167,25 @@ def get_batch_size(workload_name):
       ValueError: If workload_name is not handled.
     """
   if workload_name == 'criteo1tb':
-    return N_GPUS * 262_144
+    return 262_144
   elif workload_name == 'fastmri':
-    return N_GPUS * 32
+    return 32
   elif workload_name == 'imagenet_resnet':
-    return N_GPUS * 1024
+    return 1024
   elif workload_name == 'imagenet_vit':
-    return N_GPUS * 1024
+    return 1024
   elif workload_name == 'librispeech_conformer':
-    return N_GPUS * 256
+    return 256
   elif workload_name == 'librispeech_deepspeech':
-    return N_GPUS * 256
+    return 256
   elif workload_name == 'ogbg':
-    return N_GPUS * 512
+    return 512
   elif workload_name == 'wmt':
-    return N_GPUS * 128
+    return 128
   elif workload_name == 'mnist':
-    return N_GPUS * 16
+    return 16
   elif workload_name =='cifar':
-    return N_GPUS * 128
+    return 128
   else:
     raise ValueError(f'Unsupported workload name: {workload_name}.')
 
@@ -203,15 +209,29 @@ def data_selection(workload: spec.Workload,
   return next(input_queue)
 
 def cp_hook(state, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor]:
-    rank = state["rank"]
+    svd_rank = state["svd_rank"]
+    tol = state["tol"]
     gpu_id = state["gpu_id"]
     cp = state["cp"]
+    n_gpus = state["n_gpus"]
+    random_state = state["random_state"]
     for grad in bucket.gradients():
-        if len(grad.size()) >= 2:
-            weights, factors = cp.fit_transform(tensor=grad)
-            weights = weights[:rank]
-            factors = [factor[:, :rank] for factor in factors]
-            grad = tl.cp_tensor.cp_to_tensor((weights, factors))
-    fut = torch.futures.Future()
-    fut.set_result(bucket.buffer())
-    return fut
+      if len(grad.size()) > 2:
+        try:
+          decomp = cp.fit_transform(grad)
+          grad = tl.cp_tensor.cp_to_tensor(decomp)
+        except torch._C._LinAlgError as err:
+          print(err)
+      elif len(grad.size()) == 2:
+        try:
+          U,S,Vh = tl.tenalg.svd_interface(
+                  matrix=grad,
+                  method="randomized_svd",
+                  n_eigenvecs=svd_rank,
+                  random_state=random_state
+                  )
+          grad = (U * S) @ Vh
+        except torch._C._LinAlgError as err:
+          print(err)
+      grad.div_(n_gpus)
+    return dist.all_reduce(bucket.buffer(), async_op=True).get_future().then(lambda fut: fut.value()[0])
