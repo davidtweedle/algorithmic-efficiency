@@ -51,16 +51,16 @@ def init_optimizer_state(workload: spec.Workload,
                            init='random',
                            n_iter_max=5
                            )
-  assert rng[0] < 2 ** 32
-  assert rng[0] >= -(2 ** 32 - 1) 
-  assert isinstance(rng[0], int)
+  random_state = int(rng[0])
+  assert random_state < 2 ** 32
+  assert random_state >= -(2 ** 32 - 1) 
   model_params.register_comm_hook(
           {'cp': cp, 
            'svd_rank': hyperparameters.svd_rank, 
            'gpu_id': RANK,
            'n_gpus': N_GPUS,
            'tol': hyperparameters.tol,
-           'random_state': rng[0] if rng[0] >= 0 else rng[0] + 2 ** 32
+           'random_state': random_state if random_state >= 0 else random_state + 2 ** 32
            }, 
           cp_hook
           )
