@@ -51,7 +51,9 @@ def init_optimizer_state(workload: spec.Workload,
                            init='random',
                            n_iter_max=5
                            )
-  assert rng[0] < 2 ** 32 and rng[0] >= -(2 ** 32 - 1) and isinstance(rng[0], int)
+  assert rng[0] < 2 ** 32
+  assert rng[0] >= -(2 ** 32 - 1) 
+  assert isinstance(rng[0], int)
   model_params.register_comm_hook(
           {'cp': cp, 
            'svd_rank': hyperparameters.svd_rank, 
