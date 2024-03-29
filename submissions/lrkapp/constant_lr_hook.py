@@ -37,7 +37,6 @@ def init_optimizer_state(workload: spec.Workload,
   optimizer state
   optimizer_update_fn
   """
-  print(rng)
   if hyperparameters is None:
     hparams_dict = {'learning_rate': 0.1,
                     'momentum': 0,
@@ -59,7 +58,7 @@ def init_optimizer_state(workload: spec.Workload,
            'gpu_id': RANK,
            'n_gpus': N_GPUS,
            'tol': hyperparameters.tol,
-           'random_state': rng[0] if rng[0] >= 0 else rng[0] + 2 ** 32
+           'random_state': np.random.randomstate(seed=rng)
            }, 
           cp_hook
           )
