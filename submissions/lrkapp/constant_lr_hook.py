@@ -53,6 +53,7 @@ def init_optimizer_state(workload: spec.Workload,
                            init='random',
                            n_iter_max=5
                            )
+  print(rng[0] if rng[0] >= 0 else rng[0] + 2 ** 32)
   
   model_params.register_comm_hook(
           {'cp': cp, 
@@ -60,7 +61,7 @@ def init_optimizer_state(workload: spec.Workload,
            'gpu_id': RANK,
            'n_gpus': N_GPUS,
            'tol': hyperparameters.tol,
-           'random_state': np.random.RandomState(seed=rng)
+           'random_state': rng[0] if rng[0] >= 0 else rng[0] + 2 ** 32
            }, 
           cp_hook
           )
@@ -218,6 +219,7 @@ def cp_hook(state, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor
     cp = state["cp"]
     n_gpus = state["n_gpus"]
     random_state = state["random_state"]
+    print(random_state)
     for grad in bucket.gradients():
       if len(grad.size()) > 2:
         try:
