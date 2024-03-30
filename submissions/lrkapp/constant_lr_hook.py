@@ -261,15 +261,17 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
           print(err)
       elif len(grad.size()) == 2:
         try:
+          rank = state.svd_rank if state.svd_rank < grad.size()[0] else grad.size()[0]
+          rank = rank if rank < grad.size()[1] else grad.size()[1]
           U,S,Vh = tl.tenalg.svd_interface(
                   matrix=grad,
                   method="randomized_svd",
-                  n_eigenvecs=state.svd_rank,
+                  n_eigenvecs=rank,
                   random_state=state.random_state
                   )
-          U = U[:,:state.svd_rank]
-          S = S[:state.svd_rank]
-          Vh = Vh[:state.svd_rank]
+          U = U[:,:rank]
+          S = S[:rank]
+          Vh = Vh[:rank]
           grad = (U * S) @ Vh
         except torch._C._LinAlgError as err:
           print(err)
