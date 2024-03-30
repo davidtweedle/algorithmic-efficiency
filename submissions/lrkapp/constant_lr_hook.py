@@ -103,7 +103,7 @@ def init_optimizer_state(workload: spec.Workload,
     lrkaState = LowRankApproximationState(**state)
     model_params.register_comm_hook(lrkaState, cp_hook)
   else:
-    lrkaState.__setstate__(**state)
+    lrkaState.__setstate__(state)
 
   base_lr = hyperparameters.learning_rate
   optimizer_state = {
