@@ -95,7 +95,7 @@ def init_optimizer_state(workload: spec.Workload,
            'svd_rank': hyperparameters.svd_rank,
            'tol': hyperparameters.tol,
            'random_state': random_state,
-           'gpu_id': GPU_ID,
+           'gpu_id': RANK,
            'n_gpus': N_GPUS
            }
   if lrkaState is not None:
