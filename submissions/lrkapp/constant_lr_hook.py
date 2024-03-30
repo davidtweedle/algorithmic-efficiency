@@ -76,6 +76,7 @@ def init_optimizer_state(workload: spec.Workload,
   optimizer state
   optimizer_update_fn
   """
+  global lrkaState
   if hyperparameters is None:
     hparams_dict = {'learning_rate': 0.1,
                     'momentum': 0,
@@ -98,11 +99,11 @@ def init_optimizer_state(workload: spec.Workload,
            'gpu_id': RANK,
            'n_gpus': N_GPUS
            }
-  if lrkaState is not None:
-    lrkaState.__setstate__(**state)
-  else:
+  if lrkaState is None:
     lrkaState = LowRankApproximationState(**state)
     model_params.register_comm_hook(lrkaState, cp_hook)
+  else:
+    lrkaState.__setstate__(**state)
 
   base_lr = hyperparameters.learning_rate
   optimizer_state = {
