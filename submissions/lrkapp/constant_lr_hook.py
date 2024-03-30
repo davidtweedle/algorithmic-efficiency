@@ -264,7 +264,7 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
           U,S,Vh = tl.tenalg.svd_interface(
                   matrix=grad,
                   method="randomized_svd",
-                  n_eigenvecs=tl.min([state.svd_rank,*grad.size()]),
+                  n_eigenvecs=tl.minimum([state.svd_rank,*grad.size()]),
                   random_state=state.random_state
                   )
           grad = (U * S) @ Vh
