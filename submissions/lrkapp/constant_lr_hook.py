@@ -135,10 +135,13 @@ def update_params(workload: spec.Workload,
      new_params
      new_model_state
     """
+  global lrkaState
+  state = lrkaState.__getstate__()
+  state['global_step'] = global_step
+  lrkaState.__setstate__(state)
   del current_params_types
   del loss_type
   del eval_results
-
 
   assert USE_PYTORCH_DDP
 
@@ -252,6 +255,7 @@ def data_selection(workload: spec.Workload,
   return next(input_queue)
 
 def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor]:
+  if state['global_step'] > 1:
     for grad in bucket.gradients():
       if len(grad.size()) > 2:
         try:
@@ -276,7 +280,6 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
         except torch._C._LinAlgError as err:
           print(err)
       grad.div_(state.n_gpus)
-    return dist.all_reduce(bucket.buffer(), async_op=True).get_future().then(lambda fut: fut.value()[0])
-
+  return dist.all_reduce(bucket.buffer(), async_op=True).get_future().then(lambda fut: fut.value()[0])
 
 
