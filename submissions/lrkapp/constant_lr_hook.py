@@ -23,6 +23,7 @@ from algorithmic_efficiency import spec
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
+lrkaState = None
 
 import tensorly as tl
 tl.set_backend("pytorch")
@@ -43,7 +44,7 @@ def init_optimizer_state(workload: spec.Workload,
                     'l2': 0,
                     'cp_rank': 1,
                     'svd_rank': 10,
-                    'tol': 1e-1,
+                    'tol': 1e-1
                     }
     hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
   cp = tl.decomposition.CP(rank=hyperparameters.cp_rank,
@@ -52,18 +53,18 @@ def init_optimizer_state(workload: spec.Workload,
                            n_iter_max=5
                            )
   random_state = int(rng[0])
-  assert random_state < 2 ** 32
-  assert random_state >= -(2 ** 32 - 1) 
-  model_params.register_comm_hook(
-          {'cp': cp, 
-           'svd_rank': hyperparameters.svd_rank, 
-           'gpu_id': RANK,
-           'n_gpus': N_GPUS,
+  state = {'cp': cp,
+           'svd_rank': hyperparameters.svd_rank,
            'tol': hyperparameters.tol,
-           'random_state': random_state if random_state >= 0 else random_state + 2 ** 32
-           }, 
-          cp_hook
-          )
+           'random_state': random_state,
+           'gpu_id': GPU_ID,
+           'n_gpus': N_GPUS
+           }
+  if lrkaState is not None:
+    lrkaState.__setstate__(**state)
+  else:
+    lrkaState = LowRankApproximationState(**state)
+    model_params.register_comm_hook(lrkaState, cp_hook)
 
   base_lr = hyperparameters.learning_rate
   optimizer_state = {
@@ -211,17 +212,11 @@ def data_selection(workload: spec.Workload,
     """
   return next(input_queue)
 
-def cp_hook(state, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor]:
-    svd_rank = state["svd_rank"]
-    tol = state["tol"]
-    gpu_id = state["gpu_id"]
-    cp = state["cp"]
-    n_gpus = state["n_gpus"]
-    random_state = state["random_state"]
+def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor]:
     for grad in bucket.gradients():
       if len(grad.size()) > 2:
         try:
-          decomp = cp.fit_transform(grad)
+          decomp = state.cp.fit_transform(grad)
           grad = tl.cp_tensor.cp_to_tensor(decomp)
         except torch._C._LinAlgError as err:
           print(err)
@@ -230,11 +225,48 @@ def cp_hook(state, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor
           U,S,Vh = tl.tenalg.svd_interface(
                   matrix=grad,
                   method="randomized_svd",
-                  n_eigenvecs=svd_rank,
-                  random_state=random_state
+                  n_eigenvecs=state.svd_rank,
+                  random_state=state.random_state
                   )
           grad = (U * S) @ Vh
         except torch._C._LinAlgError as err:
           print(err)
-      grad.div_(n_gpus)
+      grad.div_(state.n_gpus)
     return dist.all_reduce(bucket.buffer(), async_op=True).get_future().then(lambda fut: fut.value()[0])
+
+
+class LowRankApproximationState:
+
+  def __init__(
+          self,
+          cp,
+          svd_rank,
+          tol,
+          random_state,
+          gpu_id,
+          n_gpus
+          )
+    self.cp = cp
+    self.svd_rank = svd_rank
+    self.tol = tol
+    self.random_state = random_state
+    self.gpu_id = gpu_id
+    self.n_gpus = n_gpus
+
+  def __setstate__(self, state):
+    self.cp = state['cp']
+    self.svd_rank = state['svd_rank']
+    self.tol = state['tol']
+    self.random_state = state['random_state']
+    self.gpu_id = state['gpu_id']
+    self.n_gpus = state['n_gpus']
+
+  def __getstate__(self):
+    res = {'cp': self.cp,
+           'svd_rank': self.svd_rank,
+           'tol': self.tol,
+           'random_state': self.random_state,
+           'gpu_id': self.gpu_id,
+           'n_gpus': self.n_gpus
+           }
+    return res
