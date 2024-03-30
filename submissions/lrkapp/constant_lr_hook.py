@@ -259,7 +259,7 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
           grad = tl.cp_tensor.cp_to_tensor(decomp)
         except torch._C._LinAlgError as err:
           print(err)
-      elif len(grad.size()) == 2 and state.svd_rank < grad.size()[0] and state.svd_rank < grad.size()[1]:
+      elif len(grad.size()) == 2:
         try:
           U,S,Vh = tl.tenalg.svd_interface(
                   matrix=grad,
@@ -267,6 +267,9 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
                   n_eigenvecs=state.svd_rank,
                   random_state=state.random_state
                   )
+          U = U[:,:state.svd_rank]
+          S = S[:state.svd_rank]
+          Vh = Vh[:state.svd_rank]
           grad = (U * S) @ Vh
         except torch._C._LinAlgError as err:
           print(err)
