@@ -245,7 +245,7 @@ class LowRankApproximationState:
           random_state,
           gpu_id,
           n_gpus
-          )
+          ):
     self.cp = cp
     self.svd_rank = svd_rank
     self.tol = tol
