@@ -28,6 +28,44 @@ lrkaState = None
 import tensorly as tl
 tl.set_backend("pytorch")
 
+
+class LowRankApproximationState:
+
+  def __init__(
+          self,
+          cp,
+          svd_rank,
+          tol,
+          random_state,
+          gpu_id,
+          n_gpus
+          ):
+    self.cp = cp
+    self.svd_rank = svd_rank
+    self.tol = tol
+    self.random_state = random_state
+    self.gpu_id = gpu_id
+    self.n_gpus = n_gpus
+
+  def __setstate__(self, state):
+    self.cp = state['cp']
+    self.svd_rank = state['svd_rank']
+    self.tol = state['tol']
+    self.random_state = state['random_state']
+    self.gpu_id = state['gpu_id']
+    self.n_gpus = state['n_gpus']
+
+  def __getstate__(self):
+    res = {'cp': self.cp,
+           'svd_rank': self.svd_rank,
+           'tol': self.tol,
+           'random_state': self.random_state,
+           'gpu_id': self.gpu_id,
+           'n_gpus': self.n_gpus
+           }
+    return res
+
+
 def init_optimizer_state(workload: spec.Workload,
                          model_params: spec.ParameterContainer,
                          model_state: spec.ModelAuxiliaryState,
@@ -235,38 +273,4 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
     return dist.all_reduce(bucket.buffer(), async_op=True).get_future().then(lambda fut: fut.value()[0])
 
 
-class LowRankApproximationState:
 
-  def __init__(
-          self,
-          cp,
-          svd_rank,
-          tol,
-          random_state,
-          gpu_id,
-          n_gpus
-          ):
-    self.cp = cp
-    self.svd_rank = svd_rank
-    self.tol = tol
-    self.random_state = random_state
-    self.gpu_id = gpu_id
-    self.n_gpus = n_gpus
-
-  def __setstate__(self, state):
-    self.cp = state['cp']
-    self.svd_rank = state['svd_rank']
-    self.tol = state['tol']
-    self.random_state = state['random_state']
-    self.gpu_id = state['gpu_id']
-    self.n_gpus = state['n_gpus']
-
-  def __getstate__(self):
-    res = {'cp': self.cp,
-           'svd_rank': self.svd_rank,
-           'tol': self.tol,
-           'random_state': self.random_state,
-           'gpu_id': self.gpu_id,
-           'n_gpus': self.n_gpus
-           }
-    return res
