@@ -64,7 +64,7 @@ class LowRankApproximationState:
            'tol': self.tol,
            'random_state': self.random_state,
            'gpu_id': self.gpu_id,
-           'n_gpus': self.n_gpus
+           'n_gpus': self.n_gpus,
            'global_step': self.global_step
            }
     return res
