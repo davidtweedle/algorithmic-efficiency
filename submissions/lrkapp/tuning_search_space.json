@@ -1,8 +1,8 @@
 {
     "learning_rate": {"min": 1e-1, "max": 1, "scaling": "linear"},
-    "momentum": {"min": 0, "max": 0.9, "scaling": "linear"},
+    "momentum": {"min": 0, "max": 0.3, "scaling": "linear"},
     "l2": {"feasible_points": [0,5e-4]},
-    "cp_rank": {"feasible_points": [1,2,3,4]},
+    "cp_rank": {"feasible_points": [1,2]},
     "svd_rank": {"feasible_points": [3,5,10,20]},
-    "tol": {"min": 1e-3, "max": 1, "scaling": "log"}
+    "tol": {"min": 1e-3, "max": 1e-1, "scaling": "log"}
 }
