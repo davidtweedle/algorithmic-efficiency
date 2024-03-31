@@ -38,7 +38,8 @@ class LowRankApproximationState:
           tol,
           random_state,
           gpu_id,
-          n_gpus
+          n_gpus,
+          global_step
           ):
     self.cp = cp
     self.svd_rank = svd_rank
@@ -46,6 +47,7 @@ class LowRankApproximationState:
     self.random_state = random_state
     self.gpu_id = gpu_id
     self.n_gpus = n_gpus
+    self.global_step = global_step
 
   def __setstate__(self, state):
     self.cp = state['cp']
@@ -54,6 +56,7 @@ class LowRankApproximationState:
     self.random_state = state['random_state']
     self.gpu_id = state['gpu_id']
     self.n_gpus = state['n_gpus']
+    self.global_step = state['global_step']
 
   def __getstate__(self):
     res = {'cp': self.cp,
@@ -62,8 +65,15 @@ class LowRankApproximationState:
            'random_state': self.random_state,
            'gpu_id': self.gpu_id,
            'n_gpus': self.n_gpus
+           'global_step': self.global_step
            }
     return res
+
+  def getstep(self):
+    return self.global_step
+
+  def setstep(self, step):
+    self.global_step = step
 
 
 def init_optimizer_state(workload: spec.Workload,
@@ -97,7 +107,8 @@ def init_optimizer_state(workload: spec.Workload,
            'tol': hyperparameters.tol,
            'random_state': random_state,
            'gpu_id': RANK,
-           'n_gpus': N_GPUS
+           'n_gpus': N_GPUS,
+           'global_step': 0
            }
   if lrkaState is None:
     lrkaState = LowRankApproximationState(**state)
@@ -136,9 +147,7 @@ def update_params(workload: spec.Workload,
      new_model_state
     """
   global lrkaState
-  state = lrkaState.__getstate__()
-  state['global_step'] = global_step
-  lrkaState.__setstate__(state)
+  lrkaState.setstep(global_step)
   del current_params_types
   del loss_type
   del eval_results
@@ -255,7 +264,7 @@ def data_selection(workload: spec.Workload,
   return next(input_queue)
 
 def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor]:
-  if state['global_step'] > 1:
+  if state.getstep() > 1:
     for grad in bucket.gradients():
       if len(grad.size()) > 2:
         try:
@@ -281,5 +290,3 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
           print(err)
       grad.div_(state.n_gpus)
   return dist.all_reduce(bucket.buffer(), async_op=True).get_future().then(lambda fut: fut.value()[0])
-
-
