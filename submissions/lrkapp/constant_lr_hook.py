@@ -102,6 +102,8 @@ def init_optimizer_state(workload: spec.Workload,
                            n_iter_max=5
                            )
   random_state = int(rng[0])
+  if random_state < 0:
+      random_state += 2 ** 32
   state = {'cp': cp,
            'svd_rank': hyperparameters.svd_rank,
            'tol': hyperparameters.tol,
