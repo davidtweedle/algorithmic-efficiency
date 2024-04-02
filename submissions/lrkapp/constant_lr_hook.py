@@ -88,12 +88,12 @@ def init_optimizer_state(workload: spec.Workload,
   """
   global lrkaState
   if hyperparameters is None:
-    hparams_dict = {'learning_rate': 0.1,
-                    'momentum': 0,
-                    'l2': 0,
-                    'cp_rank': 1,
+    hparams_dict = {'learning_rate': 0.5,
+                    'momentum': 0.2,
+                    'l2': 5e-4,
+                    'cp_rank': 2,
                     'svd_rank': 10,
-                    'tol': 1e-1
+                    'tol': 0.05 
                     }
     hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
   cp = tl.decomposition.CP(rank=hyperparameters.cp_rank,
