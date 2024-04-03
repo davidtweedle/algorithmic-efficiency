@@ -3,7 +3,7 @@
     "momentum": {"min": 0.2, "max": 0.9, "scaling": "linear"},
     "l2": {"feasible_points": [5e-4]},
     "cp_rank": {"feasible_points": [2]},
-    "svd_rank": {"feasible_points": [10]},
+    "svd_rank": {"feasible_points": [3,10]},
     "tol": {"feasible_points": [0.1, 0.01]},
     "dropout_rate": {"feasible_points": [0.0]},
     "aux_dropout_rate": {"feasible_points": [0.0]}
