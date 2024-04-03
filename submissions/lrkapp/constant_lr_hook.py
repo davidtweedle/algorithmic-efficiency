@@ -35,6 +35,7 @@ class LowRankApproximationState:
           self,
           cp,
           svd_rank,
+          tucker_rank,
           tol,
           random_state,
           gpu_id,
@@ -43,6 +44,7 @@ class LowRankApproximationState:
           ):
     self.cp = cp
     self.svd_rank = svd_rank
+    self.tucker_rank=tucker_rank
     self.tol = tol
     self.random_state = random_state
     self.gpu_id = gpu_id
@@ -52,6 +54,7 @@ class LowRankApproximationState:
   def __setstate__(self, state):
     self.cp = state['cp']
     self.svd_rank = state['svd_rank']
+    self.tucker_rank = state['tucker_rank']
     self.tol = state['tol']
     self.random_state = state['random_state']
     self.gpu_id = state['gpu_id']
@@ -61,6 +64,7 @@ class LowRankApproximationState:
   def __getstate__(self):
     res = {'cp': self.cp,
            'svd_rank': self.svd_rank,
+           'tucker_rank': self.tucker_rank,
            'tol': self.tol,
            'random_state': self.random_state,
            'gpu_id': self.gpu_id,
