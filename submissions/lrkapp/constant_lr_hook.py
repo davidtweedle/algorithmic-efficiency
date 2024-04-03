@@ -288,7 +288,7 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
                                      tol=state.tol,
                                      random_state=state.random_state
                                      )
-          grad = tl.tucker_to_tensor(decomp)
+          grad = tl.tucker_to_tensor(*decomp)
         except torch._C._LinAlgError as err:
           print(err)
       elif len(grad.size()) == 2:
