@@ -1,8 +1,10 @@
 {
-    "learning_rate": {"min": 0.25, "max": 0.75, "scaling": "linear"},
+    "learning_rate": {"min": 0.25, "max": 2.0, "scaling": "linear"},
     "momentum": {"min": 0.2, "max": 0.9, "scaling": "linear"},
-    "l2": {"feasible_points": [0,5e-4]},
-    "cp_rank": {"feasible_points": [1,2]},
-    "svd_rank": {"feasible_points": [5,10]},
-    "tol": {"feasible_points": [0.05]}
+    "l2": {"feasible_points": [5e-4]},
+    "cp_rank": {"feasible_points": [2]},
+    "svd_rank": {"feasible_points": [10]},
+    "tol": {"feasible_points": [0.1, 0.01]},
+    "dropout_rate": {"feasible_points": [0.0]},
+    "aux_dropout_rate": {"feasible_points": [0.0]}
 }

@@ -93,7 +93,9 @@ def init_optimizer_state(workload: spec.Workload,
                     'l2': 5e-4,
                     'cp_rank': 1,
                     'svd_rank': 5,
-                    'tol': 0.01 
+                    'tol': 0.01,
+                    'dropout_rate': 0.0,
+                    'aux_dropout_rate': 0.0
                     }
     hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
   cp = tl.decomposition.CP(rank=hyperparameters.cp_rank,
