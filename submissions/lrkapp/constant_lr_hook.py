@@ -279,7 +279,7 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
       if len(grad.size()) > 2:
         try:
           ranks = [min(state.tucker_rank, rank) for rank in grad.size()]
-          decomp = tl.partial_tucker(tensor=grad,
+          decomp = tl.decomposition.partial_tucker(tensor=grad,
                                      rank=ranks,
                                      modes=None,
                                      n_iter_max=5,
