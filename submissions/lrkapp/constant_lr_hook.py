@@ -88,12 +88,13 @@ def init_optimizer_state(workload: spec.Workload,
   """
   global lrkaState
   if hyperparameters is None:
-    hparams_dict = {'learning_rate': 0.25,
-                    'momentum': 0.3,
+    hparams_dict = {'learning_rate': 0.5,
+                    'momentum': 0.2,
                     'l2': 5e-4,
                     'cp_rank': 1,
                     'svd_rank': 5,
-                    'tol': 0.01,
+                    'tucker_rank': 1,
+                    'tol': 0.1,
                     'dropout_rate': 0.0,
                     'aux_dropout_rate': 0.0
                     }
@@ -107,6 +108,7 @@ def init_optimizer_state(workload: spec.Workload,
   if random_state < 0:
       random_state += 2 ** 32
   state = {'cp': cp,
+           'tucker_rank': hyperparameters.tucker_rank,
            'svd_rank': hyperparameters.svd_rank,
            'tol': hyperparameters.tol,
            'random_state': random_state,
@@ -272,7 +274,7 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
     for grad in bucket.gradients():
       if len(grad.size()) > 2:
         try:
-          ranks = [min(state.svd_rank, rank) for rank in grad.size()]
+          ranks = [min(state.tucker_rank, rank) for rank in grad.size()]
           decomp = tl.partial_tucker(tensor=grad,
                                      rank=ranks,
                                      modes=None,
