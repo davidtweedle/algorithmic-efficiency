@@ -278,17 +278,19 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
     for grad in bucket.gradients():
       if len(grad.size()) > 2:
         try:
-          ranks = [min(state.tucker_rank, rank) for rank in grad.size()]
-          decomp = tl.decomposition.partial_tucker(tensor=grad,
-                                     rank=ranks,
-                                     modes=None,
-                                     n_iter_max=5,
-                                     init='svd',
-                                     svd='randomized_svd',
-                                     tol=state.tol,
-                                     random_state=state.random_state
-                                     )
-          grad = tl.tucker_to_tensor(*decomp)
+#          ranks = [min(state.tucker_rank, rank) for rank in grad.size()]
+#          decomp = tl.decomposition.partial_tucker(tensor=grad,
+#                                     rank=ranks,
+#                                     modes=None,
+#                                     n_iter_max=5,
+#                                     init='svd',
+#                                     svd='randomized_svd',
+#                                     tol=state.tol,
+#                                     random_state=state.random_state
+#                                     )
+#          grad = tl.tucker_to_tensor(*decomp)
+          decomp = cp.fit_transform(tensor=grad)
+          grad = tl.cp_to_tensor(decomp)
         except torch._C._LinAlgError as err:
           print(err)
       elif len(grad.size()) == 2:
