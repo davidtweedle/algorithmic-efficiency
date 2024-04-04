@@ -289,7 +289,7 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
 #                                     random_state=state.random_state
 #                                     )
 #          grad = tl.tucker_to_tensor(*decomp)
-          cp = state['cp']
+          cp = state.cp
           decomp = cp.fit_transform(tensor=grad)
           grad = tl.cp_to_tensor(decomp)
         except torch._C._LinAlgError as err:
