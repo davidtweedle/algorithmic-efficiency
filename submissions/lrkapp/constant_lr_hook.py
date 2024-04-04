@@ -1,7 +1,7 @@
 """Submission by David Tweedle to ML Commons algorithmic-efficiency contest
-reference_algorithms/paper_baselines/momentum/pytorch/submission.py used as a base
 
-Added low rank approximation to SGD
+To briefly summarize this submission: before all reducing the gradients, we approximate the gradients by a low rank approximation, then all reduce.
+The idea of low rank approximation is not new, see for example, LORA, GaLORE, PowerSGD.
 """
 
 from typing import Callable, Dict, Iterator, List, Tuple
@@ -24,12 +24,21 @@ from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
 lrkaState = None
+# global variable to store the state of the communication hook
+# only used when calling this submission using
+# tuning_ruleset=external and using multiple tuning trials
+# if only using self tuning this is not needed
 
 import tensorly as tl
 tl.set_backend("pytorch")
-
+# used to find low rank approximations of gradient
+# using either the cp decomposition
+# or randomized_svd decomposition
 
 class LowRankApproximationState:
+  """ A class to store all the state information for
+      the communication hook
+  """
 
   def __init__(
           self,
@@ -232,7 +241,7 @@ def get_batch_size(workload_name):
       ValueError: If workload_name is not handled.
     """
   if workload_name == 'criteo1tb':
-    return 262_144
+    return N_GPUS * 262_144
   elif workload_name == 'fastmri':
     return N_GPUS * 32
   elif workload_name == 'imagenet_resnet':
