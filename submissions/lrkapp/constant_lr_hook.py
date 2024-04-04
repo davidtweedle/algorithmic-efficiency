@@ -234,23 +234,23 @@ def get_batch_size(workload_name):
   if workload_name == 'criteo1tb':
     return 262_144
   elif workload_name == 'fastmri':
-    return 32
+    return N_GPUS * 32
   elif workload_name == 'imagenet_resnet':
-    return 1024
+    return N_GPUS * 1024
   elif workload_name == 'imagenet_vit':
-    return 1024
+    return N_GPUS * 1024
   elif workload_name == 'librispeech_conformer':
-    return 256
+    return N_GPUS * 256
   elif workload_name == 'librispeech_deepspeech':
-    return 256
+    return N_GPUS * 256
   elif workload_name == 'ogbg':
-    return 512
+    return N_GPUS * 512
   elif workload_name == 'wmt':
-    return 128
+    return N_GPUS * 128
   elif workload_name == 'mnist':
-    return 16
+    return N_GPUS * 16
   elif workload_name =='cifar':
-    return 128
+    return N_GPUS * 128
   else:
     raise ValueError(f'Unsupported workload name: {workload_name}.')
 
