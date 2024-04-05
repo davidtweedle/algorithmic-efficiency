@@ -250,13 +250,13 @@ def get_batch_size(workload_name):
       ValueError: If workload_name is not handled.
     """
   if workload_name == 'criteo1tb':
-    return N_GPUS * 262_144
+    return 262_144
   elif workload_name == 'fastmri':
     return N_GPUS * 32
   elif workload_name == 'imagenet_resnet':
-    return N_GPUS * 1024
+    return 1024
   elif workload_name == 'imagenet_vit':
-    return N_GPUS * 1024
+    return 1024
   elif workload_name == 'librispeech_conformer':
     return N_GPUS * 256
   elif workload_name == 'librispeech_deepspeech':
