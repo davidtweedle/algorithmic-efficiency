@@ -1,7 +1,7 @@
 """Submission by David Tweedle to ML Commons algorithmic-efficiency contest
 
 To briefly summarize this submission: before all reducing the gradients, we approximate the gradients by a low rank approximation, then all reduce.
-The idea of low rank approximation is not new, see for example, LORA, GaLORE, PowerSGD.
+This allows us to increase the batch size by a factor of N_GPUS.
 """
 
 from typing import Callable, Dict, Iterator, List, Tuple
@@ -132,8 +132,13 @@ def init_optimizer_state(workload: spec.Workload,
   if lrkaState is None:
     lrkaState = LowRankApproximationState(**state)
     model_params.register_comm_hook(lrkaState, cp_hook)
+    # register the communication hook which will
+    # approximate the gradient on each gpu
+    # then all reduce the results
   else:
     lrkaState.__setstate__(state)
+    # if this has been run using num_tuning_trials > 1
+    # then we will need to re use the previous communication hook
 
   base_lr = hyperparameters.learning_rate
   optimizer_state = {
@@ -167,11 +172,15 @@ def update_params(workload: spec.Workload,
     """
   global lrkaState
   lrkaState.setstep(global_step)
+  # we need to note the global_step so
+  # that on the first step we do not calculate the
+  # svd of the gradients
   del current_params_types
   del loss_type
   del eval_results
 
   assert USE_PYTORCH_DDP
+  # this implementation assumes that one is using DDP
 
   current_model = current_param_container
   current_model.train()
@@ -302,7 +311,7 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
           decomp = cp.fit_transform(tensor=grad)
           grad = tl.cp_to_tensor(decomp)
         except torch._C._LinAlgError as err:
-          print(err)
+          pass
       elif len(grad.size()) == 2:
         try:
           rank = state.svd_rank if state.svd_rank < grad.size()[0] else grad.size()[0]
@@ -318,6 +327,6 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
           Vh = Vh[:rank]
           grad = (U * S) @ Vh
         except torch._C._LinAlgError as err:
-          print(err)
+          pass
       grad.div_(state.n_gpus)
   return dist.all_reduce(bucket.buffer(), async_op=True).get_future().then(lambda fut: fut.value()[0])
