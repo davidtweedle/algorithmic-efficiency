@@ -162,18 +162,20 @@ def init_optimizer_state(workload: spec.Workload,
     # then we will need to re use the previous communication hook
 
   base_lr = hyperparameters.learning_rate
-  
-  # basic scheduler
-  optimizer_state = {
-      'optimizer':
-          torch.optim.SGD(
-              model_params.parameters(),
-              lr=base_lr,
-              momentum=hyperparameters.momentum,
-              weight_decay=hyperparameters.l2),
-      'scheduler':
-        create_lr_schedule_fn(workload.step_hint, hyperparameters)
-  }
+  optimizer_state = {}
+  optimizer_state['optimizer'] = torch.optim.SGD(model_params.parameters(),
+                                               lr=base_lr,
+                                               momentum=hyperparameters.momentum,
+                                               weight_decay=hyperparameters.l2
+                                               )
+  lr_schedule_fn = create_lr_schedule_fn(workload.step_hint, hyperparameters)
+
+  def _lr_lambda(step: int) -> float:
+    return lr_schedule_fn(step).item() / hyperparameters.learning_rate
+
+  optimizer_state['scheduler'] = LambdaLR(
+      optimizer_state['optimizer'], lr_lambda=_lr_lambda)
+
   return optimizer_state
 
 
