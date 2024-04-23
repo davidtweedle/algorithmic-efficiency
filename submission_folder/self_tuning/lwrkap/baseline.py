@@ -88,6 +88,24 @@ class LowRankApproximationState:
   def setstep(self, step):
     self.global_step = step
 
+def create_lr_schedule_fn(
+    step_hint: int,
+    hyperparameters: spec.Hyperparameters) -> Callable[[int], float]:
+  warmup_steps = int(hyperparameters.warmup_factor * step_hint)
+  warmup_fn = optax.linear_schedule(
+      init_value=0.,
+      end_value=hyperparameters.learning_rate,
+      transition_steps=warmup_steps)
+  decay_steps = step_hint - warmup_steps
+  polynomial_schedule_fn = optax.polynomial_schedule(
+      init_value=hyperparameters.learning_rate,
+      end_value=hyperparameters.learning_rate * hyperparameters.end_factor,
+      power=1,
+      transition_steps=int(decay_steps * hyperparameters.decay_steps_factor))
+  lr_schedule_fn = optax.join_schedules(
+      schedules=[warmup_fn, polynomial_schedule_fn], boundaries=[warmup_steps])
+  return lr_schedule_fn
+
 
 def init_optimizer_state(workload: spec.Workload,
                          model_params: spec.ParameterContainer,
@@ -109,7 +127,10 @@ def init_optimizer_state(workload: spec.Workload,
                     'tucker_rank': 1,
                     'tol': 0.1,
                     'dropout_rate': 0.0,
-                    'aux_dropout_rate': 0.0
+                    'aux_dropout_rate': 0.0,
+                    'warmup_factor': 0.05,
+                    'end_factor': 0.1,
+                    'decay_steps_factor': 0.9,
                     }
     hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
   cp = tl.decomposition.CP(rank=hyperparameters.cp_rank,
@@ -141,14 +162,19 @@ def init_optimizer_state(workload: spec.Workload,
     # then we will need to re use the previous communication hook
 
   base_lr = hyperparameters.learning_rate
-  optimizer_state = {
-      'optimizer':
-          torch.optim.SGD(
-              model_params.parameters(),
-              lr=base_lr,
-              momentum=hyperparameters.momentum,
-              weight_decay=hyperparameters.l2),
-  }
+  optimizer_state = {}
+  optimizer_state['optimizer'] = torch.optim.SGD(model_params.parameters(),
+                                               lr=base_lr,
+                                               momentum=hyperparameters.momentum,
+                                               weight_decay=hyperparameters.l2
+                                               )
+  lr_schedule_fn = create_lr_schedule_fn(workload.step_hint, hyperparameters)
+
+  def _lr_lambda(step: int) -> float:
+    return lr_schedule_fn(step).item() / hyperparameters.learning_rate
+
+  optimizer_state['scheduler'] = LambdaLR(
+      optimizer_state['optimizer'], lr_lambda=_lr_lambda)
 
   return optimizer_state
 
@@ -216,6 +242,7 @@ def update_params(workload: spec.Workload,
     torch.nn.utils.clip_grad_norm_(
         current_model.parameters(), max_norm=grad_clip)
   optimizer_state['optimizer'].step()
+  optimizer_state['scheduler'].step()
 
   # Log training metrics - loss, grad_norm, batch_size.
   if global_step <= 100 or global_step % 500 == 0:
@@ -250,13 +277,13 @@ def get_batch_size(workload_name):
       ValueError: If workload_name is not handled.
     """
   if workload_name == 'criteo1tb':
-    return 262_144
+    return 4 * 262_144
   elif workload_name == 'fastmri':
     return N_GPUS * 32
   elif workload_name == 'imagenet_resnet':
-    return 1024
+    return N_GPUS * 1024
   elif workload_name == 'imagenet_vit':
-    return 1024
+    return N_GPUS * 1024
   elif workload_name == 'librispeech_conformer':
     return N_GPUS * 256
   elif workload_name == 'librispeech_deepspeech':
@@ -264,7 +291,7 @@ def get_batch_size(workload_name):
   elif workload_name == 'ogbg':
     return N_GPUS * 512
   elif workload_name == 'wmt':
-    return N_GPUS * 128
+    return 128
   elif workload_name == 'mnist':
     return N_GPUS * 16
   elif workload_name =='cifar':
