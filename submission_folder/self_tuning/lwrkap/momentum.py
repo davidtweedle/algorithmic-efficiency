@@ -21,7 +21,7 @@ def init_optimizer_state(workload: spec.Workload,
                          rng: spec.RandomState) -> spec.OptimizerState:
   """Creates a Nesterov optimizer and a learning rate schedule."""
   del model_state
-  del rng{
+  del rng
   if hyperparameters is None:
     hparams_dict = {'learning_rate': 0.1,
                     'dropout_rate': 0.1,
