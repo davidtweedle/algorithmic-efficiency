@@ -8,6 +8,8 @@ import torch
 import torch.distributed.nn as dist_nn
 from torch.optim.lr_scheduler import LambdaLR
 
+import collections
+
 from algorithmic_efficiency import spec
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
