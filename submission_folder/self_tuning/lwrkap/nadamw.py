@@ -201,6 +201,7 @@ def init_optimizer_state(workload: spec.Workload,
   del rng
   if hyperparameters is None:
     hparams_dict = {'learning_rate': 1e-3,
+                    'weight_decay': 5e-4,
                     'dropout_rate': 0.1,
                     'aux_dropout_rate': 0.1,
                     'label_smoothing': 0.1,
