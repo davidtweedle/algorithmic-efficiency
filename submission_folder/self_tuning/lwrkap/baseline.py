@@ -91,6 +91,7 @@ class LowRankApproximationState:
 def create_lr_schedule_fn(
     step_hint: int,
     hyperparameters: spec.Hyperparameters) -> Callable[[int], float]:
+  step_hint /= N_GPUS
   warmup_steps = int(hyperparameters.warmup_factor * step_hint)
   warmup_fn = optax.linear_schedule(
       init_value=0.,
