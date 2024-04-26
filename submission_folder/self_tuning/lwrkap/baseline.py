@@ -120,24 +120,24 @@ def init_optimizer_state(workload: spec.Workload,
   """
   global lrkaState
   if hyperparameters is None:
-    hparams_dict = {'learning_rate': 1.0,
-                    'momentum': 0.2,
+    hparams_dict = {'learning_rate': 1.5,
+                    'momentum': 0.9,
                     'l2': 5e-4,
-                    'cp_rank': 1,
-                    'svd_rank': 10,
+                    'cp_rank': 5,
+                    'svd_rank': 50,
                     'tucker_rank': 1,
                     'tol': 0.1,
                     'dropout_rate': 0.0,
                     'aux_dropout_rate': 0.0,
                     'warmup_factor': 0.05,
-                    'end_factor': 0.1,
+                    'end_factor': 1e-3,
                     'decay_steps_factor': 0.9,
                     }
     hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
   cp = tl.decomposition.CP(rank=hyperparameters.cp_rank,
                            tol=hyperparameters.tol,
                            init='random',
-                           n_iter_max=5
+                           n_iter_max=2
                            )
   random_state = int(rng[0])
   if random_state < 0:
@@ -245,23 +245,6 @@ def update_params(workload: spec.Workload,
   optimizer_state['optimizer'].step()
   optimizer_state['scheduler'].step()
 
-  # Log training metrics - loss, grad_norm, batch_size.
-  if global_step <= 100 or global_step % 500 == 0:
-    with torch.no_grad():
-      parameters = [p for p in current_model.parameters() if p.grad is not None]
-      grad_norm = torch.norm(
-          torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-    if workload.metrics_logger is not None:
-      workload.metrics_logger.append_scalar_metrics(
-          {
-              'loss': loss.item(),
-              'grad_norm': grad_norm.item(),
-          }, global_step)
-    logging.info('%d) loss = %0.3f, grad_norm = %0.3f',
-                 global_step,
-                 loss.item(),
-                 grad_norm.item())
-
   return (optimizer_state, current_param_container, new_model_state)
 
 
@@ -296,7 +279,7 @@ def get_batch_size(workload_name):
   elif workload_name == 'mnist':
     return N_GPUS * 16
   elif workload_name =='cifar':
-    return N_GPUS * 128
+    return 8192
   else:
     raise ValueError(f'Unsupported workload name: {workload_name}.')
 
