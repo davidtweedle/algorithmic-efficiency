@@ -121,16 +121,16 @@ def init_optimizer_state(workload: spec.Workload,
   global lrkaState
   if hyperparameters is None:
     hparams_dict = {'learning_rate': 1.5,
-                    'momentum': 0.9,
-                    'l2': 5e-4,
-                    'cp_rank': 5,
-                    'svd_rank': 50,
+                    'one_minus_beta1': 0.1,
+                    'weight_decay': 5e-4,
+                    'cp_rank': 1,
+                    'svd_rank': 10,
                     'tucker_rank': 1,
                     'tol': 0.1,
                     'dropout_rate': 0.0,
                     'aux_dropout_rate': 0.0,
                     'warmup_factor': 0.05,
-                    'end_factor': 1e-3,
+                    'end_factor': 1e-1,
                     'decay_steps_factor': 0.9,
                     }
     hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
@@ -165,10 +165,10 @@ def init_optimizer_state(workload: spec.Workload,
   base_lr = hyperparameters.learning_rate
   optimizer_state = {}
   optimizer_state['optimizer'] = torch.optim.SGD(model_params.parameters(),
-                                               lr=base_lr,
-                                               momentum=hyperparameters.momentum,
-                                               weight_decay=hyperparameters.l2
-                                               )
+                                                 lr=base_lr,
+                                                 momentum=1 - hyperparameters.one_minus_beta1,
+                                                 weight_decay=hyperparameters.weight_decay
+                                                 )
   lr_schedule_fn = create_lr_schedule_fn(workload.step_hint, hyperparameters)
 
   def _lr_lambda(step: int) -> float:
@@ -331,7 +331,8 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
                   matrix=grad,
                   method="randomized_svd",
                   n_eigenvecs=rank,
-                  random_state=state.random_state
+                  random_state=state.random_state,
+                  n_oversamples=5 * rank
                   )
           U = U[:,:rank]
           S = S[:rank]
