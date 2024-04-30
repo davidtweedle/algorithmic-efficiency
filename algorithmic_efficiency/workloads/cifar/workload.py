@@ -130,7 +130,7 @@ class BaseCifarWorkload(spec.Workload):
     # Note that the target setting algorithms were not actually run on this
     # workload, but for completeness we provide the number of steps for 100
     # epochs at batch size 1024.
-    return 4400
+    return 2200
 
   def _eval_model(
       self,

@@ -120,17 +120,17 @@ def init_optimizer_state(workload: spec.Workload,
   """
   global lrkaState
   if hyperparameters is None:
-    hparams_dict = {'learning_rate': 1.5,
-                    'one_minus_beta1': 0.1,
-                    'weight_decay': 5e-4,
-                    'cp_rank': 1,
+    hparams_dict = {'learning_rate': 0.75,
+                    'one_minus_beta1': 0.05,
+                    'weight_decay': 5e-6,
+                    'cp_rank': 2,
                     'svd_rank': 10,
                     'tucker_rank': 1,
                     'tol': 0.1,
                     'dropout_rate': 0.0,
                     'aux_dropout_rate': 0.0,
                     'warmup_factor': 0.05,
-                    'end_factor': 1e-1,
+                    'end_factor': 1e-3,
                     'decay_steps_factor': 0.9,
                     }
     hyperparameters = collections.namedtuple('Hyperparameters', hparams_dict)(**hparams_dict)
@@ -279,7 +279,7 @@ def get_batch_size(workload_name):
   elif workload_name == 'mnist':
     return N_GPUS * 16
   elif workload_name =='cifar':
-    return 2048
+    return 4096
   else:
     raise ValueError(f'Unsupported workload name: {workload_name}.')
 
