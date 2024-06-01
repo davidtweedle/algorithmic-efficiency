@@ -118,7 +118,7 @@ def init_optimizer_state(workload: spec.Workload,
   if random_state < 0:
     random_state += 2 ** 32
   rng = np.random.default_rng(seed=random_state)
-  cp_seed = rng.integers(2 ** 32 - 1)
+  cp_seed = int(rng.integers(2 ** 32 - 1))
   print("Type of seed is ", type(cp_seed))
   cp = tl.decomposition.CP(rank=hyperparameters.cp_rank,
                            tol=hyperparameters.tol,
