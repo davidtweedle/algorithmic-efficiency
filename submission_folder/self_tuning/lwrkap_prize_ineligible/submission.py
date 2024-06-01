@@ -13,6 +13,8 @@ from torch.optim.lr_scheduler import SequentialLR
 
 import torch.distributed as dist
 
+import numpy as np
+
 from absl import logging
 import optax
 import torch
