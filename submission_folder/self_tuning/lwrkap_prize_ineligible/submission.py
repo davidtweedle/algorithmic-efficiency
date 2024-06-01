@@ -122,7 +122,7 @@ def init_optimizer_state(workload: spec.Workload,
                            tol=hyperparameters.tol,
                            init='random',
                            n_iter_max=5,
-                           random_state=rng
+                           random_state=rng.integers(2 ** 32 - 1)
                            )
 
   state = {'cp': cp,
@@ -325,7 +325,7 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
                   matrix=grad,
                   method="randomized_svd",
                   n_eigenvecs=rank,
-                  random_state=state.random_state
+                  random_state=state.random_state.integers(low=0,high=2 ** 32 - 1)
                   )
           U = U[:,:rank]
           S = S[:rank]
