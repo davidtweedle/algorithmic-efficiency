@@ -118,11 +118,13 @@ def init_optimizer_state(workload: spec.Workload,
   if random_state < 0:
     random_state += 2 ** 32
   rng = np.random.default_rng(seed=random_state)
+  cp_seed = rng.integers(2 ** 32 - 1)
+  print(cp_seed)
   cp = tl.decomposition.CP(rank=hyperparameters.cp_rank,
                            tol=hyperparameters.tol,
                            init='random',
                            n_iter_max=5,
-                           random_state=rng.integers(2 ** 32 - 1)
+                           random_state=cp_seed
                            )
 
   state = {'cp': cp,
@@ -325,7 +327,7 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
                   matrix=grad,
                   method="randomized_svd",
                   n_eigenvecs=rank,
-                  random_state=state.random_state.integers(low=0,high=2 ** 32 - 1)
+                  random_state=state.random_state.integers(2 ** 32 - 1)
                   )
           U = U[:,:rank]
           S = S[:rank]
