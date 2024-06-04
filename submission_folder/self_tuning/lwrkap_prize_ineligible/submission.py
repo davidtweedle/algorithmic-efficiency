@@ -103,7 +103,7 @@ def init_optimizer_state(workload: spec.Workload,
   """
   global lrkaState
   if hyperparameters is None:
-    hparams_dict = {'learning_rate': 0.75,
+    hparams_dict = {'learning_rate': 0.5,
                     'momentum': 0.9,
                     'l2': 5e-4,
                     'cp_rank': 1,
@@ -302,22 +302,11 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
     for grad in bucket.gradients():
       if len(grad.size()) > 2:
         try:
-#          ranks = [min(state.tucker_rank, rank) for rank in grad.size()]
-#          decomp = tl.decomposition.partial_tucker(tensor=grad,
-#                                     rank=ranks,
-#                                     modes=None,
-#                                     n_iter_max=5,
-#                                     init='svd',
-#                                     svd='randomized_svd',
-#                                     tol=state.tol,
-#                                     random_state=state.random_state
-#                                     )
-#          grad = tl.tucker_to_tensor(*decomp)
           cp = state.cp
           decomp = cp.fit_transform(tensor=grad)
           grad = tl.cp_to_tensor(decomp)
         except torch._C._LinAlgError as err:
-          pass
+          logging.info('Communication hook threw error ',err,' in svd calculation')
       elif len(grad.size()) == 2:
         try:
           rank = state.svd_rank if state.svd_rank < grad.size()[0] else grad.size()[0]
@@ -333,6 +322,6 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
           Vh = Vh[:rank]
           grad = (U * S) @ Vh
         except torch._C._LinAlgError as err:
-          pass
+          logging.info('Communication hook threw error ',err,' in svd calculation.')
       grad.div_(state.n_gpus)
   return dist.all_reduce(bucket.buffer(), async_op=True).get_future().then(lambda fut: fut.value()[0])
