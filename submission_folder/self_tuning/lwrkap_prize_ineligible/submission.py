@@ -306,7 +306,7 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
           decomp = cp.fit_transform(tensor=grad)
           grad = tl.cp_to_tensor(decomp)
         except torch._C._LinAlgError as err:
-          logging.info('Communication hook threw error ' + err + ' in cp decomposition calculation')
+          logging.info('Communication hook threw error ' + str(err) + ' in cp decomposition calculation')
       elif len(grad.size()) == 2:
         try:
           rank = state.svd_rank if state.svd_rank < grad.size()[0] else grad.size()[0]
@@ -322,6 +322,6 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
           Vh = Vh[:rank]
           grad = (U * S) @ Vh
         except torch._C._LinAlgError as err:
-          logging.info('Communication hook threw error ' + err + ' in svd calculation.')
+          logging.info('Communication hook threw error ' + str(err) + ' in svd calculation.')
       grad.div_(state.n_gpus)
   return dist.all_reduce(bucket.buffer(), async_op=True).get_future().then(lambda fut: fut.value()[0])
