@@ -99,7 +99,7 @@ def init_optimizer_state(workload: spec.Workload,
   """
   global lrkaState
   if hyperparameters is None:
-    hparams_dict = {'learning_rate': 0.5,
+    hparams_dict = {'learning_rate': 0.25,
                     'momentum': 0.9,
                     'l2': 5e-4,
                     'svd_rank': 10,
@@ -258,7 +258,7 @@ def get_batch_size(workload_name):
   elif workload_name == 'mnist':
     return N_GPUS * 16
   elif workload_name =='cifar':
-    return N_GPUS * 128
+    return 128
   else:
     raise ValueError(f'Unsupported workload name: {workload_name}.')
 
