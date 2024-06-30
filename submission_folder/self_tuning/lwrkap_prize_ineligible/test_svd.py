@@ -287,7 +287,8 @@ def comm_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torc
       grad_shape = grad.shape
       m = max(grad_shape)
       reshaped_grad = grad.reshape(-1,m)
-      if len(reshaped_grad.shape) == 2:
+      n = reshaped_grad.shape[0]
+      if n > 1:
         try:
           rank = state.svd_rank if state.svd_rank < reshaped_grad.shape[0] else grad.shape[0]
           rank = rank if rank < m else m
