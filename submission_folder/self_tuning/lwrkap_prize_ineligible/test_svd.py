@@ -318,7 +318,8 @@ def comm_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torc
           Vh = Vh[:rank]
           reshaped_grad = (U * S) @ Vh
         except torch._C._LinAlgError as err:
-          logging.info('Communication hook threw error number ', state.num_errs)
+          state.num_errs += 1
+          logging.info('Communication hook threw error number ' + str(state.num_errs))
       reshaped_grad.div_(state.n_gpus)
       grad = reshaped_grad.reshape(grad_shape)
   return dist.all_reduce(bucket.buffer(), async_op=True).get_future().then(lambda fut: fut.value()[0])
