@@ -44,7 +44,6 @@ class LowRankApproximationState:
 
   def __init__(
           self,
-          cp=3,
           svd_rank=3,
           tucker_rank=3,
           tol=1e-3,
@@ -54,7 +53,6 @@ class LowRankApproximationState:
           global_step=0,
           num_errs=0
           ):
-    self.cp = cp
     self.svd_rank = svd_rank
     self.tucker_rank=tucker_rank
     self.tol = tol
@@ -65,9 +63,7 @@ class LowRankApproximationState:
     self.num_errs = num_errs
 
   def __setstate__(self, state):
-    self.cp = state['cp']
     self.svd_rank = state['svd_rank']
-    self.tucker_rank = state['tucker_rank']
     self.tol = state['tol']
     self.random_state = state['random_state']
     self.gpu_id = state['gpu_id']
@@ -107,7 +103,7 @@ def init_optimizer_state(workload: spec.Workload,
   """
   global lrkaState
   if hyperparameters is None:
-    hparams_dict = {'learning_rate': .5,
+    hparams_dict = {'learning_rate': 0.5,
                     'momentum': 0.9,
                     'l2': 5e-4,
                     'cp_rank': 1,
@@ -141,7 +137,7 @@ def init_optimizer_state(workload: spec.Workload,
            }
   if lrkaState is None:
     lrkaState = LowRankApproximationState(**state)
-    model_params.register_comm_hook(lrkaState, cp_hook)
+    model_params.register_comm_hook(lrkaState, comm_hook)
     # register the communication hook which will
     # approximate the gradient on each gpu
     # then all reduce the results
@@ -301,23 +297,18 @@ def data_selection(workload: spec.Workload,
     """
   return next(input_queue)
 
-def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor]:
+def comm_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.futures.Future[torch.Tensor]:
   if state.getstep() > 1:
     for grad in bucket.gradients():
-      if len(grad.size()) > 2:
+      grad_shape = grad.shape
+      m = torch.max([*grad_shape])
+      reshaped_grad = grad.reshape(-1,m)
+      if len(reshaped_grad.shape) == 2:
         try:
-          cp = state.cp
-          decomp = cp.fit_transform(tensor=grad)
-          grad = tl.cp_to_tensor(decomp)
-        except torch._C._LinAlgError as err:
-          state.num_errs += 1
-          logging.info('Communication hook threw error number' + str(state.num_errs) + ' in cp decomposition calculation')
-      elif len(grad.size()) == 2:
-        try:
-          rank = state.svd_rank if state.svd_rank < grad.size()[0] else grad.size()[0]
-          rank = rank if rank < grad.size()[1] else grad.size()[1]
+          rank = state.svd_rank if state.svd_rank < reshaped_grad.shape[0] else grad.shape[0]
+          rank = rank if rank < m else m
           U,S,Vh = tl.tenalg.svd_interface(
-                  matrix=grad,
+                  matrix=reshaped_grad,
                   method="randomized_svd",
                   n_eigenvecs=rank,
                   random_state=int(state.random_state.integers(2 ** 32 - 1))
@@ -325,9 +316,9 @@ def cp_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torch.
           U = U[:,:rank]
           S = S[:rank]
           Vh = Vh[:rank]
-          grad = (U * S) @ Vh
+          reshaped_grad = (U * S) @ Vh
         except torch._C._LinAlgError as err:
-          state.num_errs += 1
-          logging.info('Communication hook threw error number' + str(state.num_errs) + 'in svd calculation.')
-      grad.div_(state.n_gpus)
+          logging.info('Communication hook threw error number ', state.num_errs)
+      reshaped_grad.div_(state.n_gpus)
+      grad = reshaped_grad.reshape(grad_shape)
   return dist.all_reduce(bucket.buffer(), async_op=True).get_future().then(lambda fut: fut.value()[0])
