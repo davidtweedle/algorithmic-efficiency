@@ -285,22 +285,20 @@ def comm_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torc
   if state.getstep() > 1:
     for grad in bucket.gradients():
       grad_shape = grad.shape
-      m = max([*grad_shape])
+      m = max(grad_shape)
       reshaped_grad = grad.reshape(-1,m)
       if len(reshaped_grad.shape) == 2:
         try:
           rank = state.svd_rank if state.svd_rank < reshaped_grad.shape[0] else grad.shape[0]
           rank = rank if rank < m else m
-          U,S,Vh = tl.tenalg.svd_interface(
-                  matrix=reshaped_grad,
-                  method="randomized_svd",
-                  n_eigenvecs=rank,
-                  random_state=int(state.random_state.integers(2 ** 32 - 1))
+          U,S,V = torch.svd_lowrank(
+                  reshaped_grad,
+                  q=rank
                   )
           U = U[:,:rank]
           S = S[:rank]
-          Vh = Vh[:rank]
-          reshaped_grad = (U * S) @ Vh
+          V = V[:,:rank]
+          reshaped_grad = (U * S) @ V.T
         except torch._C._LinAlgError as err:
           state.num_errs += 1
           logging.info('Communication hook threw error number ' + str(state.num_errs))
