@@ -285,7 +285,7 @@ def comm_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torc
   if state.getstep() > 1:
     for grad in bucket.gradients():
       grad_shape = grad.shape
-      m = torch.max([*grad_shape])
+      m = max([*grad_shape])
       reshaped_grad = grad.reshape(-1,m)
       if len(reshaped_grad.shape) == 2:
         try:
