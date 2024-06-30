@@ -45,7 +45,6 @@ class LowRankApproximationState:
   def __init__(
           self,
           svd_rank=3,
-          tucker_rank=3,
           tol=1e-3,
           random_state=0,
           gpu_id=0,
@@ -54,7 +53,6 @@ class LowRankApproximationState:
           num_errs=0
           ):
     self.svd_rank = svd_rank
-    self.tucker_rank=tucker_rank
     self.tol = tol
     self.random_state = random_state
     self.gpu_id = gpu_id
@@ -72,9 +70,7 @@ class LowRankApproximationState:
     self.num_errs = state['num_errs']
 
   def __getstate__(self):
-    res = {'cp': self.cp,
-           'svd_rank': self.svd_rank,
-           'tucker_rank': self.tucker_rank,
+    res = {'svd_rank': self.svd_rank,
            'tol': self.tol,
            'random_state': self.random_state,
            'gpu_id': self.gpu_id,
@@ -106,9 +102,7 @@ def init_optimizer_state(workload: spec.Workload,
     hparams_dict = {'learning_rate': 0.5,
                     'momentum': 0.9,
                     'l2': 5e-4,
-                    'cp_rank': 1,
                     'svd_rank': 10,
-                    'tucker_rank': 1,
                     'tol': 0.1,
                     'dropout_rate': 0.0,
                     'aux_dropout_rate': 0.0
@@ -118,17 +112,7 @@ def init_optimizer_state(workload: spec.Workload,
   if random_state < 0:
     random_state += 2 ** 32
   rng = np.random.default_rng(seed=random_state)
-  cp_seed = int(rng.integers(2 ** 32 - 1))
-  cp = tl.decomposition.CP(rank=hyperparameters.cp_rank,
-                           tol=hyperparameters.tol,
-                           init='random',
-                           n_iter_max=5,
-                           random_state=cp_seed
-                           )
-
-  state = {'cp': cp,
-           'tucker_rank': hyperparameters.tucker_rank,
-           'svd_rank': hyperparameters.svd_rank,
+  state = {'svd_rank': hyperparameters.svd_rank,
            'tol': hyperparameters.tol,
            'random_state': rng,
            'gpu_id': RANK,
