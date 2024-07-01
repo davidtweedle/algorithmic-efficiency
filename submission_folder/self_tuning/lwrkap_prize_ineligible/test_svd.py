@@ -102,7 +102,7 @@ def init_optimizer_state(workload: spec.Workload,
     hparams_dict = {'learning_rate': 0.25,
                     'momentum': 0.0,
                     'l2': 5e-4,
-                    'svd_rank': 10,
+                    'svd_rank': 30,
                     'tol': 0.1,
                     'dropout_rate': 0.0,
                     'aux_dropout_rate': 0.0
