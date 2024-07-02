@@ -290,7 +290,6 @@ def comm_hook(state: LowRankApproximationState, bucket: dist.GradBucket) -> torc
       n = reshaped_grad.shape[0]
       if n > 1:
         try:
-          logging.info('grad shape ' + str(grad.shape) + ', reshaped grad shape ' + str(reshaped_grad.shape))
           rank = state.svd_rank if state.svd_rank < n else n
           rank = rank if rank < m else m
           U,S,V = torch.svd_lowrank(
