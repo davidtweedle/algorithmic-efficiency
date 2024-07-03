@@ -99,7 +99,9 @@ def init_optimizer_state(workload: spec.Workload,
   """
   global lrkaState
   if hyperparameters is None:
-    hparams_dict = {'learning_rate': 0.05,
+    hparams_dict = {'learning_rate': 1,
+                    'start_factor': 0.05,
+                    'total_iters_factor': 0.2,
                     'momentum': 0.0,
                     'l2': 5e-4,
                     'svd_rank': 30,
@@ -130,15 +132,23 @@ def init_optimizer_state(workload: spec.Workload,
     # if this has been run using num_tuning_trials > 1
     # then we will need to re use the previous communication hook
 
-  base_lr = hyperparameters.learning_rate
+  optimizer = torch.optim.SGD(
+          model_params.parameters(),
+          lr=hyperparameters.learning_rate,
+          momentum=hyperparameters.momentum,
+          weight_decay=hyperparameters.l2
+          )
+  total_iters = int(hyperparameters.total_iters_factor * workload.step_hint)
+  scheduler = torch.optim.lr_scheduler.LinearLR(
+          optimizer,
+          start_factor=hyperparameters.start_factor,
+          total_iters=total_iters
+          )
+
   optimizer_state = {
-      'optimizer':
-          torch.optim.SGD(
-              model_params.parameters(),
-              lr=base_lr,
-              momentum=hyperparameters.momentum,
-              weight_decay=hyperparameters.l2),
-  }
+          'optimizer': optimizer,
+          'scheduler': scheduler
+          }
 
   return optimizer_state
 
@@ -206,6 +216,7 @@ def update_params(workload: spec.Workload,
     torch.nn.utils.clip_grad_norm_(
         current_model.parameters(), max_norm=grad_clip)
   optimizer_state['optimizer'].step()
+  optimizer_state['scheduler'].step()
 
   # Log training metrics - loss, grad_norm, batch_size.
   if global_step <= 100 or global_step % 500 == 0:
