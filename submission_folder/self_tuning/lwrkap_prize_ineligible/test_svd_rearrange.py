@@ -139,10 +139,14 @@ def init_optimizer_state(workload: spec.Workload,
           weight_decay=hyperparameters.l2
           )
   total_iters = int(hyperparameters.total_iters_factor * workload.step_hint)
-  scheduler = torch.optim.lr_scheduler.LinearLR(
+  scheduler = torch.optim.lr_scheduler.OneCycleLR(
           optimizer,
-          start_factor=hyperparameters.start_factor,
-          total_iters=total_iters
+          max_lr=hyperparameters.learning_rate,
+          total_steps=workload.step_hint,
+          anneal_strategy='linear',
+          cycle_momentum=False,
+          base_momentum=0,
+          max_momentum=0
           )
 
   optimizer_state = {
