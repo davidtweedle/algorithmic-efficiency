@@ -101,7 +101,7 @@ def init_optimizer_state(workload: spec.Workload,
   if hyperparameters is None:
     hparams_dict = {'learning_rate': 1,
                     'start_factor': 0.05,
-                    'total_iters_factor': 0.05,
+                    'total_iters_factor': 0.2,
                     'momentum': 0.0,
                     'l2': 5e-4,
                     'svd_rank': 10,
