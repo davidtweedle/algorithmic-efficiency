@@ -138,7 +138,6 @@ def init_optimizer_state(workload: spec.Workload,
           momentum=hyperparameters.momentum,
           weight_decay=hyperparameters.l2
           )
-  total_iters = int(hyperparameters.total_iters_factor * workload.step_hint)
   scheduler = torch.optim.lr_scheduler.LinearLR(
           optimizer,
           max_lr=hyperparameters.learning_rate,
