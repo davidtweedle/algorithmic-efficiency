@@ -99,9 +99,9 @@ def init_optimizer_state(workload: spec.Workload,
   """
   global lrkaState
   if hyperparameters is None:
-    hparams_dict = {'learning_rate': 0.5,
+    hparams_dict = {'learning_rate': 0.25,
                     'start_factor': 0.05,
-                    'total_iters_factor': 0.2,
+                    'total_iters': 100,
                     'momentum': 0.0,
                     'l2': 5e-4,
                     'svd_rank': 10,
@@ -139,14 +139,11 @@ def init_optimizer_state(workload: spec.Workload,
           weight_decay=hyperparameters.l2
           )
   total_iters = int(hyperparameters.total_iters_factor * workload.step_hint)
-  scheduler = torch.optim.lr_scheduler.OneCycleLR(
+  scheduler = torch.optim.lr_scheduler.LinearLR(
           optimizer,
           max_lr=hyperparameters.learning_rate,
-          total_steps=workload.step_hint,
-          anneal_strategy='linear',
-          cycle_momentum=False,
-          base_momentum=0,
-          max_momentum=0
+          start_factor=hyperparameters.start_factor,
+          total_iters=hyperparameters.total_iters
           )
 
   optimizer_state = {
