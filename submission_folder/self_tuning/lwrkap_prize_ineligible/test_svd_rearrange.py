@@ -140,8 +140,8 @@ def init_optimizer_state(workload: spec.Workload,
           )
   scheduler = torch.optim.lr_scheduler.LinearLR(
           optimizer,
-          max_lr=hyperparameters.learning_rate,
           start_factor=hyperparameters.start_factor,
+          end_factor=hyperparameters.learning_rate,
           total_iters=hyperparameters.total_iters
           )
 
