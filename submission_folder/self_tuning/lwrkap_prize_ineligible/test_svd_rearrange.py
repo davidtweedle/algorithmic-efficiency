@@ -99,9 +99,8 @@ def init_optimizer_state(workload: spec.Workload,
   """
   global lrkaState
   if hyperparameters is None:
-    hparams_dict = {'learning_rate': 0.25,
-                    'start_factor': 20,
-                    'total_iters_factor': 0.1,
+    hparams_dict = {'learning_rate': 0.01,
+                    'warmup_factor': 0.02,
                     'momentum': 0.0,
                     'l2': 5e-4,
                     'svd_rank': 10,
@@ -138,18 +137,22 @@ def init_optimizer_state(workload: spec.Workload,
           momentum=hyperparameters.momentum,
           weight_decay=hyperparameters.l2
           )
-  scheduler = torch.optim.lr_scheduler.OneCycleLR(
-          optimizer,
-          max_lr=hyperparameters.learning_rate,
-          total_steps=workload.step_hint,
-          pct_start=hyperparameters.total_iters_factor,
-          anneal_strategy='linear',
-          cycle_momentum=False,
-          base_momentum=0,
-          max_momentum=0,
-          div_factor=hyperparameters.start_factor
-          )
 
+    def pytorch_cosine_warmup(int: step_hint, hyperparameters, optimizer):
+      # taken from prize_qualification_baselines/self_tuning/pytorch_nadamw_full_budget.py
+      warmup_steps = int(hyperparameters.warmup_factor * step_hint)
+      warmup = torch.optim.LinearLR(optimizer,
+                                    start_factor=1e-10,
+                                    end_factor=1.,
+                                    total_iters=warmup_steps
+                                    )
+      cosine_steps = max(step_hint - warmup_steps, 1)
+      cosine_decay = torch.optim.CosineAnnealingLR(optimizer, T_max=cosine_steps)
+      return torch.optim.SequentialLR(optimizer,
+                                      schedulers=[warmup, cosine_decay],
+                                      milestones=[warmup_steps]
+                                      )
+  scheduler = pytorch_cosine_warmup(workload.step_hint, hyperparameters, optimizer)
   optimizer_state = {
           'optimizer': optimizer,
           'scheduler': scheduler
