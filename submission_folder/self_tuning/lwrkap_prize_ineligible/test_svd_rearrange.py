@@ -100,7 +100,7 @@ def init_optimizer_state(workload: spec.Workload,
   global lrkaState
   if hyperparameters is None:
     hparams_dict = {'learning_rate': 0.25,
-                    'start_factor': 0.05,
+                    'start_factor': 20,
                     'total_iters_factor': 0.1,
                     'momentum': 0.0,
                     'l2': 5e-4,
