@@ -147,7 +147,7 @@ def init_optimizer_state(workload: spec.Workload,
           cycle_momentum=False,
           base_momentum=0,
           max_momentum=0,
-          div_factor=hypermparameters.start_factor
+          div_factor=hyperparameters.start_factor
           )
 
   optimizer_state = {
