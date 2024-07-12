@@ -138,11 +138,16 @@ def init_optimizer_state(workload: spec.Workload,
           momentum=hyperparameters.momentum,
           weight_decay=hyperparameters.l2
           )
-  scheduler = torch.optim.lr_scheduler.LinearLR(
+  scheduler = torch.optim.lr_scheduler.OneCycleLR(
           optimizer,
-          start_factor=hyperparameters.start_factor,
-          end_factor=hyperparameters.learning_rate,
-          total_iters=hyperparameters.total_iters
+          max_lr=hyperparameters.learning_rate,
+          total_steps=workload.step_hint,
+          pct_start=hyperparameters.total_iters_factor,
+          anneal_strategy='linear',
+          cycle_momentum=False,
+          base_momentum=0,
+          max_momentum=0,
+          div_factor=hypermparameters.start_factor
           )
 
   optimizer_state = {
