@@ -137,7 +137,7 @@ def init_optimizer_state(workload: spec.Workload,
           momentum=hyperparameters.momentum,
           weight_decay=hyperparameters.l2
           )
-  def pytorch_cosine_warmup(int: step_hint, hyperparameters, optimizer):
+  def pytorch_cosine_warmup(step_hint: int, hyperparameters, optimizer):
     # taken from prize_qualification_baselines/self_tuning/pytorch_nadamw_full_budget.py
     warmup_steps = int(hyperparameters.warmup_factor * step_hint)
     warmup = torch.optim.LinearLR(optimizer,
