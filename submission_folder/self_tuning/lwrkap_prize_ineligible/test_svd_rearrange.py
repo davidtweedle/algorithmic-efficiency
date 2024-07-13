@@ -140,17 +140,17 @@ def init_optimizer_state(workload: spec.Workload,
   def pytorch_cosine_warmup(step_hint: int, hyperparameters, optimizer):
     # taken from prize_qualification_baselines/self_tuning/pytorch_nadamw_full_budget.py
     warmup_steps = int(hyperparameters.warmup_factor * step_hint)
-    warmup = torch.optim.LinearLR(optimizer,
-                                  start_factor=1e-10,
-                                  end_factor=1.,
-                                  total_iters=warmup_steps
-                                  )
+    warmup = LinearLR(optimizer,
+                      start_factor=1e-10,
+                      end_factor=1.,
+                      total_iters=warmup_steps
+                      )
     cosine_steps = max(step_hint - warmup_steps, 1)
-    cosine_decay = torch.optim.CosineAnnealingLR(optimizer, T_max=cosine_steps)
-    return torch.optim.SequentialLR(optimizer,
-                                    schedulers=[warmup, cosine_decay],
-                                    milestones=[warmup_steps]
-                                    )
+    cosine_decay = CosineAnnealingLR(optimizer, T_max=cosine_steps)
+    return SequentialLR(optimizer,
+                        schedulers=[warmup, cosine_decay],
+                        milestones=[warmup_steps]
+                        )
 
   scheduler = pytorch_cosine_warmup(workload.step_hint, hyperparameters, optimizer)
   optimizer_state = {
