@@ -108,7 +108,7 @@ def init_optimizer_state(workload: spec.Workload,
                     'momentum': 0.0,
                     'l2': 5e-4,
                     'svd_rank': 1,
-                    'upper_bound_rank': 20,
+                    'upper_bound_rank': 100,
                     'tol': 0.1,
                     'dropout_rate': 0.0,
                     'aux_dropout_rate': 0.0
