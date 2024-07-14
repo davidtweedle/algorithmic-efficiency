@@ -124,7 +124,8 @@ def init_optimizer_state(workload: spec.Workload,
            'random_state': rng,
            'gpu_id': RANK,
            'n_gpus': N_GPUS,
-           'global_step': 0
+           'global_step': 0,
+           'num_errs': 0
            }
   if lrkaState is None:
     lrkaState = LowRankApproximationState(**state)
