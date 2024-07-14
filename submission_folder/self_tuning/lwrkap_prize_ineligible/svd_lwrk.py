@@ -108,7 +108,7 @@ def init_optimizer_state(workload: spec.Workload,
                     'momentum': 0.0,
                     'l2': 5e-4,
                     'svd_rank': 1,
-                    'upper_bound_rank': 100,
+                    'upper_bound_factor': 100,
                     'tol': 0.1,
                     'dropout_rate': 0.0,
                     'aux_dropout_rate': 0.0
@@ -119,7 +119,7 @@ def init_optimizer_state(workload: spec.Workload,
     random_state += 2 ** 32
   rng = np.random.default_rng(seed=random_state)
   state = {'svd_rank': hyperparameters.svd_rank,
-           'upper_bound_rank': hyperparameters.upper_bound_rank,
+           'upper_bound_rank': hyperparameters.upper_bound_factor * hyperparameters.svd_rank,
            'tol': hyperparameters.tol,
            'random_state': rng,
            'gpu_id': RANK,
