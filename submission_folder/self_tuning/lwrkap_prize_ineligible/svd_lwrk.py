@@ -138,6 +138,8 @@ def init_optimizer_state(workload: spec.Workload,
     # if this has been run using num_tuning_trials > 1
     # then we will need to re use the previous communication hook
 
+  for p in model_params.parameters():
+    print(p)
   optimizer = torch.optim.SGD(
           model_params.parameters(),
           lr=hyperparameters.learning_rate,
