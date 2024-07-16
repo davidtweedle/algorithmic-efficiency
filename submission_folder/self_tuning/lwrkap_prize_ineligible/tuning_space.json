@@ -1,6 +1,6 @@
 {
   "learning_rate": {
-    "feasible_points": [0.1, 1,5]
+    "feasible_points": [1,5,10]
   },
   "warmup_factor": {
       "feasible_points": [0.02]
@@ -15,7 +15,7 @@
       "feasible_points": [1]
   },
   "upper_bound_factor": {
-      "feasible_points": [20]
+      "feasible_points": [10, 20, 50]
   },
   "tol": {
       "feasible_points": [0.1]
