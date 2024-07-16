@@ -1,6 +1,6 @@
 {
   "learning_rate": {
-    "feasible_points": [1,5,10]
+    "feasible_points": [1, 2.5, 5]
   },
   "warmup_factor": {
       "feasible_points": [0.02]
