@@ -5,6 +5,9 @@
   "warmup_factor": {
       "feasible_points": [0.02]
   },
+  "end_factor": {
+      "feasible_points": [0.01]
+  },
   "momentum": {
       "feasible_points": [0.9]
   },
