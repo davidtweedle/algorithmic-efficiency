@@ -53,7 +53,7 @@ class LowRankApproximationState:
           n_gpus=1,
           global_step=0,
           num_errs=0,
-          handles
+          handles=[]
           ):
     self.svd_rank = svd_rank
     self.upper_bound_rank = upper_bound_rank
