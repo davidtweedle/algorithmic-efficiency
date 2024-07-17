@@ -345,6 +345,7 @@ def data_selection(workload: spec.Workload,
   return next(input_queue)
 
 def svd_hook(grad, state: LowRankApproximationState, upper_rank, rank, oldshape, newshape):
+  print(grad.device)
   reshaped_grad = grad.reshape(*newshape)
   try:
     U,S,V = torch.svd_lowrank(
