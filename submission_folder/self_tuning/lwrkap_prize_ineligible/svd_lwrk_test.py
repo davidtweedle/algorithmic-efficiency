@@ -27,7 +27,7 @@ from algorithmic_efficiency import spec
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
-lrkaState = None
+lrka_state = None
 # global variable to store the state of the communication hook
 # only used when calling this submission using
 # tuning_ruleset=external and using multiple tuning trials
