@@ -109,10 +109,10 @@ def init_optimizer_state(workload: spec.Workload,
   global lrka_state
   if hyperparameters is None:
     hparams_dict = {'learning_rate': 1.,
-                    'warmup_factor': 0.02,
+                    'warmup_factor': 0.05,
                     'momentum': 0.9,
-                    'l2': 5e-4,
-                    'svd_rank': 1,
+                    'l2': 5e-5,
+                    'svd_rank': 50,
                     'upper_bound_factor': 100,
                     'tol': 0.1,
                     'dropout_rate': 0.0,
@@ -155,15 +155,14 @@ def init_optimizer_state(workload: spec.Workload,
         m = a
       else:
         n *= a
-    if n > 1:
-      upper_rank = min(n,lrka_state.upper_bound_rank)
-      rank = min(upper_rank, lrka_state.svd_rank)
+    if lrka_state.upper_bound_rank < n:
+      rank = min(lrka_state.upper_bound_rank, lrka_state.svd_rank)
       newshape = [m,n]
       handle = p.register_hook(
                 partial(
                   svd_hook,
                   lrka_state=lrka_state,
-                  upper_rank=upper_rank,
+                  upper_rank=state.upper_bound_rank,
                   rank=rank,
                   oldshape=oldshape,
                   newshape=newshape
