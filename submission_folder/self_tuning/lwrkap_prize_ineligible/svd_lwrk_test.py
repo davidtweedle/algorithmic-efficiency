@@ -155,14 +155,15 @@ def init_optimizer_state(workload: spec.Workload,
         m = a
       else:
         n *= a
-    if lrka_state.upper_bound_rank < n:
-      rank = min(lrka_state.upper_bound_rank, lrka_state.svd_rank)
+    if  lrka_state.svd_rank < n:
+      upper_rank = min(n, lrka_state.upper_bound_rank)
+      rank = min(upper_rank, lrka_state.svd_rank)
       newshape = [m,n]
       handle = p.register_hook(
                 partial(
                   svd_hook,
                   lrka_state=lrka_state,
-                  upper_rank=state.upper_bound_rank,
+                  upper_rank=upper_rank,
                   rank=rank,
                   oldshape=oldshape,
                   newshape=newshape
