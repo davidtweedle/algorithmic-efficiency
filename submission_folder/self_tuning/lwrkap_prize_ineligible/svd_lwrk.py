@@ -314,7 +314,7 @@ def data_selection(workload: spec.Workload,
   return next(input_queue)
 
 def svd_hook(lrka_state: LowRankApproximationState, bucket):
-  if lrka_state.get_step() > 1:
+  if lrka_state.getstep() > 1:
     for grad in bucket.gradients():
       oldshape = grad.shape
       reshaped_grad = grad.reshape(oldshape[0], -1)
