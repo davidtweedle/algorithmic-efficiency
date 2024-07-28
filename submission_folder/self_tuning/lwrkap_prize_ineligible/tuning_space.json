@@ -3,7 +3,7 @@
     "feasible_points": [1, 2.5, 5]
   },
   "warmup_factor": {
-      "feasible_points": [0.02]
+      "feasible_points": [0.05]
   },
   "end_factor": {
       "feasible_points": [0.01]
@@ -12,7 +12,7 @@
       "feasible_points": [0.9]
   },
   "l2": {
-    "feasible_points": [5e-4]
+    "feasible_points": [5e-5]
   },
   "svd_rank": {
       "feasible_points": [1]
