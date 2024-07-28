@@ -14,8 +14,6 @@ from torch.optim.lr_scheduler import LambdaLR
 
 from functools import partial
 
-import torch.distributed as dist
-
 import numpy as np
 
 from absl import logging
@@ -52,7 +50,6 @@ def init_optimizer_state(workload: spec.Workload,
                     'l2': 5e-5,
                     'svd_rank': 1,
                     'upper_bound_factor': 10,
-                    'tol': 0.1,
                     'dropout_rate': 0.0,
                     'aux_dropout_rate': 0.0,
                     'end_factor': 0.01
@@ -64,8 +61,6 @@ def init_optimizer_state(workload: spec.Workload,
   rng = np.random.default_rng(seed=random_state)
   state = {'svd_rank': hyperparameters.svd_rank,
            'upper_bound_rank': hyperparameters.upper_bound_factor * hyperparameters.svd_rank,
-           'tol': hyperparameters.tol,
-           'random_state': rng,
            'gpu_id': RANK,
            'n_gpus': N_GPUS,
            'global_step': 0,
