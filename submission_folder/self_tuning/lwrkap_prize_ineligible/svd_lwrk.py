@@ -23,7 +23,7 @@ import torch
 
 from algorithmic_efficiency import spec
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
-from low_rank_comm import LowRankApproximationState, svd_hook
+from algorithmic_efficiency.submission_folder.self_tuning.lwrkap_prize_ineligible.low_rank_comm import LowRankApproximationState, svd_hook
 
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
 lrka_state = None
