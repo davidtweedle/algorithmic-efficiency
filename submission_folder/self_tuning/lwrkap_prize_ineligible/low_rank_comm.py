@@ -12,8 +12,6 @@ class LowRankApproximationState:
           self,
           svd_rank=3,
           upper_bound_rank=30,
-          tol=1e-3,
-          random_state=0,
           gpu_id=0,
           n_gpus=1,
           global_step=0,
@@ -21,8 +19,6 @@ class LowRankApproximationState:
           ):
     self.svd_rank = svd_rank
     self.upper_bound_rank = upper_bound_rank
-    self.tol = tol
-    self.random_state = random_state
     self.gpu_id = gpu_id
     self.n_gpus = n_gpus
     self.global_step = global_step
@@ -31,8 +27,6 @@ class LowRankApproximationState:
   def __setstate__(self, state):
     self.svd_rank = state['svd_rank']
     self.upper_bound_rank = state['upper_bound_rank']
-    self.tol = state['tol']
-    self.random_state = state['random_state']
     self.gpu_id = state['gpu_id']
     self.n_gpus = state['n_gpus']
     self.global_step = state['global_step']
@@ -41,8 +35,6 @@ class LowRankApproximationState:
   def __getstate__(self):
     res = {'svd_rank': self.svd_rank,
            'upper_bound_rank': self.upper_bound_rank,
-           'tol': self.tol,
-           'random_state': self.random_state,
            'gpu_id': self.gpu_id,
            'n_gpus': self.n_gpus,
            'global_step': self.global_step,
