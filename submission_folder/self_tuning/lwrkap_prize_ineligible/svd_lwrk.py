@@ -73,7 +73,7 @@ def init_optimizer_state(workload: spec.Workload,
     # approximate the gradient on each gpu
     # then all reduce the results
   else:
-    lrka_state.__set_state__(**state)
+    lrka_state.__setstate__(state)
     # if this has been run using num_tuning_trials > 1
     # then we will need to re use the previous communication hook
   
