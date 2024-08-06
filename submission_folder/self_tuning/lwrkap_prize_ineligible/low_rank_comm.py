@@ -78,7 +78,7 @@ def svd_hook(lrka_state: LowRankApproximationState, bucket):
   return dist.all_reduce(bucket.buffer(), async_op=True).get_future().then(lambda fut: fut.value()[0])
 
 def low_rank_hook(lrka_state: LowRankApproximationState, bucket):
-  for grad in bucket.gradients:
+  for grad in bucket.gradients():
     oldshape = grad.shape
     reshaped_grad = grad.reshape(oldshape[0], -1)
     m, n, _ = *reshaped_grad.shape, 1
