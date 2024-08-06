@@ -83,7 +83,7 @@ def low_rank_hook(lrka_state: LowRankApproximationState, bucket):
     oldshape = grad.shape
     reshaped_grad = grad.reshape(oldshape[0], -1)
     m, n, _ = *reshaped_grad.shape, 1
-    rank = int(min(m, n, lrka_state.low_rank)
+    rank = int(min(m, n, lrka_state.low_rank))
     if n > 1:      
       Y = torch.randn(rank, m, device=lrka_state.gpu_id)
       Y = torch.matmul(Y, reshaped_grad)
