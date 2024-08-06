@@ -204,7 +204,7 @@ def init_optimizer_state(workload: spec.Workload,
   global lrka_state
   state = {'svd_rank': hyperparameters.svd_rank,
            'upper_bound_rank': hyperparameters.upper_bound_factor * hyperparameters.svd_rank,
-           'rank_multiplier': hyperparameters.rank_multiplier,
+           'low_rank': hyperparameters.low_rank,
            'gpu_id': RANK,
            'n_gpus': N_GPUS,
            'global_step': 0,
