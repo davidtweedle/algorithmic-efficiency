@@ -12,7 +12,7 @@ class LowRankApproximationState:
           self,
           svd_rank=3,
           upper_bound_rank=30,
-          rank_multiplier=0.1,
+          low_rank=0.1,
           gpu_id=0,
           n_gpus=1,
           global_step=0,
