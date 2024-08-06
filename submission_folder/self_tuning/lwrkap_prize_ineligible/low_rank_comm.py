@@ -85,9 +85,9 @@ def low_rank_hook(lrka_state: LowRankApproximationState, bucket):
     rank = int(min(m,n) * lrka_state.rank_multiplier)
     rank = max(rank,5)
     if n > 1:      
-      Y = torch.randn(rank, n, device=lrka_state.gpu_id)
+      Y = torch.randn(rank, m, device=lrka_state.gpu_id)
       Y = torch.matmul(Y, reshaped_grad)
-      X = torch.randn(m, rank, device=lrka_state.gpu_id)
+      X = torch.randn(n, rank, device=lrka_state.gpu_id)
       Y = torch.linalg.lstsq(torch.matmul(Y,X),Y)
       X = torch.matmul(reshaped_grad, X)
       grad = torch.matmul(X, Y).reshape(*oldshape)
