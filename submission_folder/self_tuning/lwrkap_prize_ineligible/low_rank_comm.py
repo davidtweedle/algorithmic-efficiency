@@ -30,7 +30,6 @@ class LowRankApproximationState:
     self.svd_rank = state['svd_rank']
     self.upper_bound_rank = state['upper_bound_rank']
     self.low_rank = state['low_rank']
-    self.rank_multiplier = state['rank_multiplier']
     self.gpu_id = state['gpu_id']
     self.n_gpus = state['n_gpus']
     self.global_step = state['global_step']
