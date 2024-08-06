@@ -14,7 +14,7 @@ from torch.optim.lr_scheduler import SequentialLR
 from algorithmic_efficiency import spec
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
-from .low_rank_comm import LowRankApproximationState, svd_hook
+from .low_rank_comm import LowRankApproximationState, svd_hook, low_rank_hook
 
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
 lrka_state = None
@@ -204,6 +204,7 @@ def init_optimizer_state(workload: spec.Workload,
   global lrka_state
   state = {'svd_rank': hyperparameters.svd_rank,
            'upper_bound_rank': hyperparameters.upper_bound_factor * hyperparameters.svd_rank,
+           'rank_multiplier': hyperparameters.rank_multiplier,
            'gpu_id': RANK,
            'n_gpus': N_GPUS,
            'global_step': 0,
@@ -211,11 +212,13 @@ def init_optimizer_state(workload: spec.Workload,
            }
 
   if lrka_state is None:
+    hook = svd_hook if hyperparameters.hook == "svd" else low_rank_hook
     lrka_state = LowRankApproximationState(**state)
-    model_params.register_comm_hook(lrka_state, svd_hook)
+    model_params.register_comm_hook(lrka_state, hook)
     # register the communication hook which will
     # approximate the gradient on each gpu
     # then all reduce the results
+    # cannot change hook between svd and low rank on same run
   else:
     lrka_state.__setstate__(state)
     # if this has been run using num_tuning_trials > 1
