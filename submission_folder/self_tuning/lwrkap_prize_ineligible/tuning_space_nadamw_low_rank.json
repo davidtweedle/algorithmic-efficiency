@@ -9,7 +9,7 @@
         "warmup_factor": 0.1,
         "svd_rank": 1,
         "upper_bound_factor": 25,
-        "rank_multiplier": 0.1,
+        "low_rank": 25,
         "hook": "low"
     },
     {
@@ -22,7 +22,7 @@
         "warmup_factor": 0.05,
         "svd_rank": 1,
         "upper_bound_factor": 25,
-        "rank_multiplier": 0.1,
+        "low_rank": 25,
         "hook": "low"
     },
     {
@@ -35,7 +35,7 @@
         "warmup_factor": 0.1,
         "svd_rank": 1,
         "upper_bound_factor": 25,
-        "rank_multiplier": 0.1,
+        "low_rank": 25,
         "hook": "low"
     },
     {
@@ -48,7 +48,7 @@
         "warmup_factor": 0.02,
         "svd_rank": 1,
         "upper_bound_factor": 25,
-        "rank_multiplier": 0.1,
+        "low_rank": 25,
         "hook": "low"
     },
     {
@@ -61,7 +61,7 @@
         "warmup_factor": 0.02,
         "svd_rank": 1,
         "upper_bound_factor": 25,
-        "rank_multiplier": 0.1,
+        "low_rank": 25,
         "hook": "low"
     }
 ]

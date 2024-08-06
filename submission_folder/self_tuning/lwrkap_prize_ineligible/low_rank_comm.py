@@ -20,7 +20,7 @@ class LowRankApproximationState:
           ):
     self.svd_rank = svd_rank
     self.upper_bound_rank = upper_bound_rank
-    self.rank_multiplier = rank_multiplier
+    self.low_rank = low_rank
     self.gpu_id = gpu_id
     self.n_gpus = n_gpus
     self.global_step = global_step
@@ -29,6 +29,7 @@ class LowRankApproximationState:
   def __setstate__(self, state):
     self.svd_rank = state['svd_rank']
     self.upper_bound_rank = state['upper_bound_rank']
+    self.low_rank = state['low_rank']
     self.rank_multiplier = state['rank_multiplier']
     self.gpu_id = state['gpu_id']
     self.n_gpus = state['n_gpus']
@@ -82,8 +83,7 @@ def low_rank_hook(lrka_state: LowRankApproximationState, bucket):
     oldshape = grad.shape
     reshaped_grad = grad.reshape(oldshape[0], -1)
     m, n, _ = *reshaped_grad.shape, 1
-    rank = int(min(m,n) * lrka_state.rank_multiplier)
-    rank = max(rank,5)
+    rank = int(min(m, n, lrka_state.low_rank)
     if n > 1:      
       Y = torch.randn(rank, m, device=lrka_state.gpu_id)
       Y = torch.matmul(Y, reshaped_grad)
