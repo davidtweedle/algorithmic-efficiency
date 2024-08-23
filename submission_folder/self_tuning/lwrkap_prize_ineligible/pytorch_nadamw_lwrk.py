@@ -1,4 +1,12 @@
-"""Submission file for an NAdamW optimizer with warmup+cosine LR in PyTorch."""
+""" Submission by David Tweedle
+
+We approximate the gradient using low rank sketches.
+Another approach is to use svd_lowrank from pytorch,
+or calculate the svd using Tensorly.
+
+Otherwise we take the approach from the NAdamW prize qualification baseline 
+in the algorithmic-efficiency repository.
+"""
 
 import math
 from typing import Dict, Iterator, List, Tuple
@@ -202,8 +210,9 @@ def init_optimizer_state(workload: spec.Workload,
   del rng
 
   global lrka_state
+  upper_bound_rank = hyperparameters.upper_bound_factor * hyperparameters.svd_rank
   state = {'svd_rank': hyperparameters.svd_rank,
-           'upper_bound_rank': hyperparameters.upper_bound_factor * hyperparameters.svd_rank,
+           'upper_bound_rank': upper_bound_rank,
            'low_rank': hyperparameters.low_rank,
            'gpu_id': RANK,
            'n_gpus': N_GPUS,
@@ -293,13 +302,11 @@ def update_params(workload: spec.Workload,
       label_smoothing=label_smoothing)
   summed_loss = loss_dict['summed']
   n_valid_examples = loss_dict['n_valid_examples']
-  if USE_PYTORCH_DDP:
-    # Use dist_nn.all_reduce to ensure correct loss and gradient scaling.
-    summed_loss = dist_nn.all_reduce(summed_loss)
-    n_valid_examples = dist_nn.all_reduce(n_valid_examples)
+  # gradients are all reduced during backward call
   loss = summed_loss / n_valid_examples
 
   loss.backward()
+  dist_nn.all_reduce(loss)
 
   if grad_clip is not None:
     torch.nn.utils.clip_grad_norm_(
