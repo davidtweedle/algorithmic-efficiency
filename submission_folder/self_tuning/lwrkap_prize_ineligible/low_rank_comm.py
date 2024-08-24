@@ -57,7 +57,7 @@ def svd_approximator(grad, upper_bound_rank, svd_rank, device, n_gpus):
   grad.div_(n_gpus)
   return grad
 
-def sketch_approximator(grad, rank, device, n_gpus):
+def sketch_approximator(grad, low_rank, device, n_gpus):
   oldshape = grad.shape
   reshaped_grad = grad.reshape(oldshape[0], -1)
   m, n, _ = *reshaped_grad.shape, 1

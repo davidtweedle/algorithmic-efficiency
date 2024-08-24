@@ -212,7 +212,7 @@ def init_optimizer_state(workload: spec.Workload,
   del rng
 
   global lrka_state
-  approximator_args = {'rank': hyperparameters.upper_bound_rank,
+  approximator_args = {'low_rank': hyperparameters.upper_bound_rank,
                        'device': DEVICE,
                        'n_gpus': N_GPUS
                       }
