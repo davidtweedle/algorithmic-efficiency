@@ -283,7 +283,7 @@ def update_params(workload: spec.Workload,
                          }
     new_approximator = partial(svd_approximator, **approximator_args)
     new_state = {'approximator': new_approximator}
-    lrka_state.__setstate__(**new_state)
+    lrka_state.__setstate__(new_state)
     logging.info(f'Set approximator to SVD on step {global_step}')
 
   current_model = current_param_container
