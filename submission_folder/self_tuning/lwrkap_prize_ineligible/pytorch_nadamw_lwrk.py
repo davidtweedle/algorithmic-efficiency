@@ -210,20 +210,17 @@ def init_optimizer_state(workload: spec.Workload,
   del rng
 
   global lrka_state
-  upper_bound_rank = hyperparameters.upper_bound_factor * hyperparameters.svd_rank
-  state = {'svd_rank': hyperparameters.svd_rank,
-           'upper_bound_rank': upper_bound_rank,
-           'low_rank': hyperparameters.low_rank,
-           'gpu_id': RANK,
-           'n_gpus': N_GPUS,
-           'global_step': 0,
-           'num_errs': 0
-           }
+  approximator_args = {'rank': hyperparameters.upper_bound_rank,
+                       'device': DEVICE,
+                       'n_gpus': N_GPUS
+                      }
+  approximator = partial(sketch_approximator, **approximator_args)
+  state = {'approximator': approximator
+          }
 
   if lrka_state is None:
-    hook = svd_hook if hyperparameters.hook == "svd" else low_rank_hook
     lrka_state = LowRankApproximationState(**state)
-    model_params.register_comm_hook(lrka_state, hook)
+    model_params.register_comm_hook(lrka_state, lwrk_hook)
     # register the communication hook which will
     # approximate the gradient on each gpu
     # then all reduce the results
@@ -274,6 +271,18 @@ def update_params(workload: spec.Workload,
   del current_params_types
   del loss_type
   del eval_results
+
+  switch_from_sketch_to_svd = int(workload.step_hint * hyperparameters.switch_point)
+  if global_step == switch_from_sketch_to_svd:
+    approximator_args = {'upper_bound_rank': hyperparameters.upper_bound_rank,
+                         'svd_rank': hyperparameters.svd_rank,
+                         'device': DEVICE,
+                         'n_gpus': N_GPUS
+                         }
+    new_approximator = partial(svd_approximator, **approximator_args)
+    new_state = {'approximator': new_approximator}
+    lrka_state.__setstate__(**new_state)
+    logging.info(f'Set approximator to SVD on step {global_step}')
 
   current_model = current_param_container
   current_model.train()

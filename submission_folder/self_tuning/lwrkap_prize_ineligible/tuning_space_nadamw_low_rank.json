@@ -8,9 +8,8 @@
         "weight_decay": 0.16375311233774334,
         "warmup_factor": 0.1,
         "svd_rank": 1,
-        "upper_bound_factor": 25,
-        "low_rank": 25,
-        "hook": "low"
+        "upper_bound_rank": 25,
+        "switch_point": 0.35
     },
     {
         "dropout_rate": 0.0,
@@ -21,9 +20,8 @@
         "weight_decay": 0.08135402759553023,
         "warmup_factor": 0.05,
         "svd_rank": 1,
-        "upper_bound_factor": 25,
-        "low_rank": 25,
-        "hook": "low"
+        "upper_bound_rank": 25,
+        "switch_point": 0.35
     },
     {
         "dropout_rate": 0.0,
@@ -34,9 +32,8 @@
         "weight_decay": 0.16375311233774334,
         "warmup_factor": 0.1,
         "svd_rank": 1,
-        "upper_bound_factor": 25,
-        "low_rank": 25,
-        "hook": "low"
+        "upper_bound_rank": 25,
+        "switch_point": 0.35
     },
     {
         "dropout_rate": 0.0,
@@ -47,9 +44,8 @@
         "weight_decay": 0.1147386261512052,
         "warmup_factor": 0.02,
         "svd_rank": 1,
-        "upper_bound_factor": 25,
-        "low_rank": 25,
-        "hook": "low"
+        "upper_bound_rank": 25,
+        "switch_point": 0.35
     },
     {
         "dropout_rate": 0.0,
@@ -60,8 +56,7 @@
         "weight_decay": 0.08121616522670176,
         "warmup_factor": 0.02,
         "svd_rank": 1,
-        "upper_bound_factor": 25,
-        "low_rank": 25,
-        "hook": "low"
+        "upper_bound_rank": 25,
+        "switch_point": 0.35
     }
 ]
