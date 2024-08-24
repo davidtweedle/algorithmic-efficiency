@@ -11,6 +11,8 @@ in the algorithmic-efficiency repository.
 import math
 from typing import Dict, Iterator, List, Tuple
 
+from functools import partial
+
 from absl import logging
 import torch
 from torch import Tensor
@@ -22,7 +24,7 @@ from torch.optim.lr_scheduler import SequentialLR
 from algorithmic_efficiency import spec
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
-from .low_rank_comm import LowRankApproximationState, svd_hook, low_rank_hook
+from .low_rank_comm import LowRankApproximationState, lwrk_hook, svd_approximator, sketch_approximator
 
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
 lrka_state = None
