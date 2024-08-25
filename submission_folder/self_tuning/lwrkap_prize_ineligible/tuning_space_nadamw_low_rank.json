@@ -48,7 +48,7 @@
         "switch_point": 0.35
     },
     {
-        "dropout_rate": 0.0,
+        "dropout_rate": 0.1,
         "label_smoothing": 0.0,
         "learning_rate": 0.0017486387539278373,
         "one_minus_beta1": 0.06733926164,
@@ -56,7 +56,7 @@
         "weight_decay": 0.08121616522670176,
         "warmup_factor": 0.02,
         "svd_rank": 1,
-        "upper_bound_rank": 25,
+        "upper_bound_rank": 8,
         "switch_point": 0.35
     }
 ]
