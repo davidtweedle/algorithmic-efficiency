@@ -24,7 +24,7 @@ from torch.optim.lr_scheduler import SequentialLR
 from algorithmic_efficiency import spec
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
-from .low_rank_comm import LowRankApproximationState, lwrk_hook, svd_approximator, sketch_approximator
+from .low_rank_comm import LowRankApproximationState, lwrk_hook
 
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
 lrka_state = None
@@ -212,23 +212,22 @@ def init_optimizer_state(workload: spec.Workload,
   del rng
 
   global lrka_state
-  approximator_args = {'low_rank': hyperparameters.upper_bound_rank,
-                       'device': DEVICE,
-                       'n_gpus': N_GPUS
-                      }
-  approximator = partial(sketch_approximator, **approximator_args)
-  state = {'approximator': approximator
+  lrka_state_args = {
+          'matrix_approximation_rank': hyperparameters.matrix_approximation_rank,
+          'device': DEVICE,
+          'n_gpus': N_GPUS,
+          'global_step': 0
           }
 
   if lrka_state is None:
-    lrka_state = LowRankApproximationState(**state)
+    lrka_state = LowRankApproximationState(**lrka_state_args)
     model_params.register_comm_hook(lrka_state, lwrk_hook)
     # register the communication hook which will
     # approximate the gradient on each gpu
     # then all reduce the results
     # cannot change hook between svd and low rank on same run
   else:
-    lrka_state.__setstate__(state)
+    lrka_state.__setstate__(lrka_state_args)
     # if this has been run using num_tuning_trials > 1
     # then we will need to re use the previous communication hook
 
@@ -273,18 +272,6 @@ def update_params(workload: spec.Workload,
   del current_params_types
   del loss_type
   del eval_results
-
-  switch_from_sketch_to_svd = int(workload.step_hint * hyperparameters.switch_point)
-  if global_step == switch_from_sketch_to_svd:
-    approximator_args = {'upper_bound_rank': hyperparameters.upper_bound_rank,
-                         'svd_rank': hyperparameters.svd_rank,
-                         'device': DEVICE,
-                         'n_gpus': N_GPUS
-                         }
-    new_approximator = partial(svd_approximator, **approximator_args)
-    new_state = {'approximator': new_approximator}
-    lrka_state.__setstate__(new_state)
-    logging.info(f'Set approximator to SVD on step {global_step}')
 
   current_model = current_param_container
   current_model.train()
