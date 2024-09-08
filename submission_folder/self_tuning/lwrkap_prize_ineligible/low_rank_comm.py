@@ -135,14 +135,14 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         batch_size, m, n = tensor.shape
         if n <= m:
             Y = torch.bmm(Y, tensor)
-            middle, X = torch.bmm(torch.cat((Y, tensor), dim=1), X).split([k, n], 1)
+            middle, X = torch.bmm(torch.cat((Y, tensor), dim=1), X).split([state.matrix_approximation_rank, n], 1)
             a, tau = torch.geqrf(middle)
             Y = torch.ormqr(torch.tril(a, diagonal=-1), tau, Y, left=True, transpose=True)
             X = torch.linalg.solve_triangular(a, X, upper=True, left=False)
 
         else:
             X = torch.bmm(tensor, X)
-            middle, Y = torch.bmm(Y, torch.cat((X,tensor), dim=2)).split([k, m], 1)    
+            middle, Y = torch.bmm(Y, torch.cat((X,tensor), dim=2)).split([state.matrix_approximation_rank, m], 1)
             a, tau = torch.geqrf(middle)
             Y = torch.ormqr(torch.tril(a, diagonal=-1), tau, Y, left=True, transpose=True)
             X = torch.linalg.solve_triangular(a, X, upper=True, left=False)
