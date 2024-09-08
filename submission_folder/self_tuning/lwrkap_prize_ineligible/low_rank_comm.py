@@ -62,7 +62,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     dtype = input_tensor.dtype
 
     if state.global_step == 0:
-        return default._allreduce_fut(input_tensor)
+        return default._allreduce_fut(tensor=input_tensor)
 
     bucket_index = bucket.index()
 
