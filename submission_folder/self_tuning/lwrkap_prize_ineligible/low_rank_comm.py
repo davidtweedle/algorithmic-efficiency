@@ -46,7 +46,7 @@ class LowRankApproximationState:
 
 
 def lwrk_hook(state: LowRankApproximationState, bucket):
-    n_gpus = state.N_GPUS
+    n_gpus = state.n_gpus
 
     input_tensor = bucket.buffer()
 
