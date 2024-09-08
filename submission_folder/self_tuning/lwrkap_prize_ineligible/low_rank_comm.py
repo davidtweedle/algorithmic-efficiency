@@ -142,7 +142,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
         else:
             X = torch.bmm(tensor, X)
-            middle, Y = torch.bmm(Y, torch.cat((X,tensor), dim=1)).split([k, m], 1)    
+            middle, Y = torch.bmm(Y, torch.cat((X,tensor), dim=2)).split([k, m], 1)    
             a, tau = torch.geqrf(middle)
             Y = torch.ormqr(torch.tril(a, diagonal=-1), tau, Y, left=True, transpose=True)
             X = torch.linalg.solve_triangular(a, X, upper=True, left=False)
