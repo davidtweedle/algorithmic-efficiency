@@ -153,7 +153,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
             ).get_future()
 
     def unpack_uncompressed_tensors_and_allgather_ls_and_rs(fut):
-        uncompressed_tensors_memory = fut.value()[0].div_(world_size)
+        uncompressed_tensors_memory = fut.value()[0].div_(n_gpus)
         idx = 0
         for tensor in uncompressed_tensors:
             tensor.copy_(
