@@ -155,9 +155,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         Y = torch.bmm(tensor, u)
         v = torch.randn(batch_size, state.matrix_approximation_rank, m, device=device)
         middle, X = torch.bmm(v, torch.cat((Y, tensor), dim=2)).split([state.matrix_approximation_rank, n], 2)
-        a, tau = torch.geqrf(middle)
-        X = torch.ormqr(torch.tril(a, diagonal=-1), tau, X, left=True, transpose=True)
-        Y = torch.linalg.solve_triangular(a, Y, upper=True, left=False)
+        X = torch.linalg.lstsq(middle, X).solution
 
     allreduce_contiguous_uncompressed_tensors_fut = dist.all_reduce(
             uncompressed_tensors_memory, async_op=True
