@@ -49,7 +49,7 @@ class LowRankApproximationState:
         for slot, value in state.items():
             setattr(self, slot, value)
 
-    def increment_global_step():
+    def increment_global_step(self):
         self.global_step += 1
 
 
