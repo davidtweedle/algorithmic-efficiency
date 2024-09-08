@@ -151,9 +151,9 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
     for tensor, X, Y in zip(tensors_to_compress, Xs, Ys):
         batch_size, m, n = tensor.shape
-        u = torch.randn(batch_size, n, state.matrix_approximation_rank)
+        u = torch.randn(batch_size, n, state.matrix_approximation_rank, device=device)
         Y = torch.bmm(tensor, u)
-        v = torch.randn(batch_size, state.approximation_rank, m)
+        v = torch.randn(batch_size, state.approximation_rank, m, device=device)
         middle, X = torch.bmm(v, torch.cat((Y, tensor), dim=2)).split([state.matrix_approximation_rank, n], 2)
         a, tau = torch.geqrf(middle)
         X = torch.ormqr(torch.tril(a, diagonal=-1), tau, X, left=True, transpose=True)
