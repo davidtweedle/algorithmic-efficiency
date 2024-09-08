@@ -171,8 +171,8 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
                 )
 
     def decompress_ls_and_rs(fut):
-        state.l_memory_dict[bucket_index] = fut[0].wait().value()
-        state.r_memory_dict[bucket_index] = fut[1].wait().value()
+        state.l_memory_dict[bucket_index] = fut.wait()[0].value()
+        state.r_memory_dict[bucket_index] = fut.wait()[1].value()
         for l, r, tensor in zip(ls, rs, tensors_to_compress):
             l = torch.cat(torch.unbind(l, dim=0), dim=-1)
             r = torch.cat(torch.unbind(r, dim=0), dim=-1)
