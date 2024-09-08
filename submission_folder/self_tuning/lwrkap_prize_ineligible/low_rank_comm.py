@@ -125,8 +125,8 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
                     r_idx : r_idx + batch_size * n * state.matrix_approximation_rank * n_gpus
                     ].view(n_gpus, batch_size, n, state.matrix_approximation_rank)
                 )
-        Ys.append(torch.randn(batch_size, state.matrix_approximation_rank, m))
-        Xs.append(torch.randn(batch_size, n, state.matrix_approximation_rank))
+        Ys.append(torch.randn(batch_size, state.matrix_approximation_rank, m, device=device))
+        Xs.append(torch.randn(batch_size, n, state.matrix_approximation_rank, device=device))
 
         l_idx += batch_size * m * state.matrix_approximation_rank * n_gpus
         r_idx += batch_size * n * state.matrix_approximation_rank * n_gpus
