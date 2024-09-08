@@ -191,7 +191,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
             l = torch.cat(torch.unbind(l, dim=0), dim=-1)
             r = torch.cat(torch.unbind(r, dim=0), dim=-2)
             torch.bmm(l, r, out=tensor)
-            tensor.div(n_gpus)
+            tensor.div_(n_gpus)
 
         if state.batch_tensors_with_same_shape:
             for tensor in tensors_to_compress:
