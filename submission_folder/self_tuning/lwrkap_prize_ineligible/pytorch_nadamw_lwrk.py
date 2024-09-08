@@ -214,7 +214,6 @@ def init_optimizer_state(workload: spec.Workload,
   global lrka_state
   lrka_state_args = {
           'matrix_approximation_rank': hyperparameters.matrix_approximation_rank,
-          'device': DEVICE,
           'n_gpus': N_GPUS,
           'global_step': 0
           }
