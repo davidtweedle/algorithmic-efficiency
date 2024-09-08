@@ -26,7 +26,7 @@ class LowRankApproximationState:
     def __init__(
             self,
             n_gpus,
-            eps=1e-1,
+            eps=1.0,
             matrix_approximation_rank=8,
             batch_tensors_with_same_shape: bool = True
             ):
