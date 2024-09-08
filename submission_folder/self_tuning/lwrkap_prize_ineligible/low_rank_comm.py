@@ -27,6 +27,7 @@ class LowRankApproximationState:
             matrix_approximation_rank=8,
             batch_tensors_with_same_shape: bool = True
             ):
+        self.n_gpus = n_gpus
         self.matrix_approximation_rank = matrix_approximation_rank
         self.batch_tensors_with_same_shape = batch_tensors_with_same_shape
         self.l_memory_dict: Dict[int, torch.Tensor] = {}
