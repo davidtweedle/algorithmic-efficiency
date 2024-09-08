@@ -32,6 +32,8 @@ class LowRankApproximationState:
         self.batch_tensors_with_same_shape = batch_tensors_with_same_shape
         self.l_memory_dict: Dict[int, torch.Tensor] = {}
         self.r_memory_dict: Dict[int, torch.Tensor] = {}
+        self.Y_memory_dict: Dict[int, torch.Tensor] = {}
+        self.X_memory_dict: Dict[int, torch.Tensor] = {}
         self.global_step = 0
 
     def __getstate__(self):
@@ -80,13 +82,18 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
             else torch.tensor([], device=device, dtype=dtype)
             )
     
-    if bucket_index not in state.l_memory_dict:
-        state.l_memory_dict[bucket_index] = torch.empty(
-                total_Ls_size, device=device, dtype=dtype
-                )
-        state.r_memory_dict[bucket_index] = torch.empty(
-                total_Rs_size, device=device, dtype=dtype
-                )
+    state.l_memory_dict[bucket_index] = torch.empty(
+            total_Ls_size, device=device, dtype=dtype
+            )
+    state.r_memory_dict[bucket_index] = torch.empty(
+            total_Rs_size, device=device, dtype=dtype
+            )
+    state.X_memory_dict[bucket_index] = torch.randn(
+            total_Xs_size, device=device, dtype=dtype
+            )
+    state.Y_memory_dict[bucket_index] = torch.randn(
+            total_Ys_size, device=device, dtype=dtype
+            )
     shape_to_tensors = defaultdict(list)
     for tensor in tensors_to_compress:
         shape_to_tensors[tensor.shape].append(tensor)
@@ -125,11 +132,20 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
                     r_idx : r_idx + batch_size * n * state.matrix_approximation_rank * n_gpus
                     ].view(n_gpus, batch_size, n, state.matrix_approximation_rank)
                 )
-        Ys.append(torch.randn(batch_size, state.matrix_approximation_rank, m, device=device))
-        Xs.append(torch.randn(batch_size, n, state.matrix_approximation_rank, device=device))
-
+        Ys.append(
+                state.Y_memory_dict[bucket_index][
+                    y_idx : y_idx + batch_size * m * state.matrix_approximation_rank
+                    ].view(batch_size, state.matrix_approximation_rank, m)
+                )
+        Xs.append(
+                state.X_memory_dict[bucket_index][
+                    x_idx : x_idx + batch_size * n * state.matrix_approximation_rank
+                    ].view(batch_size, n, state.matrix_approximation_rank)
+                )
         l_idx += batch_size * m * state.matrix_approximation_rank * n_gpus
         r_idx += batch_size * n * state.matrix_approximation_rank * n_gpus
+        y_idx += batch_size * m * state.matrix_approximation_rank
+        x_idx += batch_size * n * state.matrix_approximation_rank
 
     for tensor, X, Y in zip(tensors_to_compress, Xs, Ys):
         batch_size, m, n = tensor.shape
@@ -163,9 +179,9 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
         return (
                 torch.futures.collect_all([
-                    dist.all_gather_into_tensor(state.l_memory_dict[bucket_index], Ys, async_op=True
+                    dist.all_gather_into_tensor(state.l_memory_dict[bucket_index], state.Y_memory_dict[bucket_index], async_op=True
                     ).get_future(),
-                    dist.all_gather_into_tensor(state.r_memory_dict[bucket_index], Xs, async_op=True
+                    dist.all_gather_into_tensor(state.r_memory_dict[bucket_index], state.X_memory_dict[bucket_index], async_op=True
                     ).get_future()])
                 .wait()
                 )
@@ -191,6 +207,8 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
         state.l_memory_dict.clear()
         state.r_memory_dict.clear()
+        state.X_memory_dict.clear()
+        state.Y_memory_dict.clear()
 
         return input_tensor
 
