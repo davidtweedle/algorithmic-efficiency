@@ -163,9 +163,9 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
         return (
                 torch.futures.collect_all([
-                    dist.all_gather(state.l_memory_dict[bucket_index], Ys, async_op=True
+                    dist.all_gather_into_tensor(state.l_memory_dict[bucket_index], Ys, async_op=True
                     ).get_future(),
-                    dist.all_gather(state.r_memory_dict[bucket_index], Xs, async_op=True
+                    dist.all_gather_into_tensor(state.r_memory_dict[bucket_index], Xs, async_op=True
                     ).get_future()])
                 .wait()
                 )
