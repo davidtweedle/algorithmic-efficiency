@@ -22,7 +22,6 @@ class LowRankApproximationState:
             "r_memory_dict",
             "X_memory_dict",
             "Y_memory_dict",
-            "global_step"
             ]
     def __init__(
             self,
@@ -39,7 +38,6 @@ class LowRankApproximationState:
         self.r_memory_dict: Dict[int, torch.Tensor] = {}
         self.Y_memory_dict: Dict[int, torch.Tensor] = {}
         self.X_memory_dict: Dict[int, torch.Tensor] = {}
-        self.global_step = 0
 
     def __getstate__(self):
         return {
@@ -52,9 +50,6 @@ class LowRankApproximationState:
         for slot, value in state.items():
             setattr(self, slot, value)
 
-    def increment_global_step(self):
-        self.global_step += 1
-
 
 def lwrk_hook(state: LowRankApproximationState, bucket):
     n_gpus = state.n_gpus
@@ -63,9 +58,6 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
     device = input_tensor.device
     dtype = input_tensor.dtype
-
-    if state.global_step == 0:
-        return default._allreduce_fut(process_group=None, tensor=input_tensor)
 
     bucket_index = bucket.index()
 
