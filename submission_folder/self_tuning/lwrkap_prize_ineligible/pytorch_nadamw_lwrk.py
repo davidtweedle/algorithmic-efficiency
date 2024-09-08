@@ -304,6 +304,7 @@ def update_params(workload: spec.Workload,
 
   loss.backward()
   dist_nn.all_reduce(loss)
+  lrka_state.increment_global_step()
 
   if grad_clip is not None:
     torch.nn.utils.clip_grad_norm_(

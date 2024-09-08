@@ -49,6 +49,9 @@ class LowRankApproximationState:
         for slot, value in state.items():
             setattr(self, slot, value)
 
+    def increment_global_step():
+        self.global_step += 1
+
 
 def lwrk_hook(state: LowRankApproximationState, bucket):
     n_gpus = state.n_gpus
@@ -57,6 +60,9 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
     device = input_tensor.device
     dtype = input_tensor.dtype
+
+    if state.global_step == 0:
+        return default._allreduce_fut(input_tensor)
 
     bucket_index = bucket.index()
 
