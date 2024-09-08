@@ -19,6 +19,8 @@ class LowRankApproximationState:
             "batch_tensors_with_same_shape",
             "l_memory_dict",
             "r_memory_dict",
+            "X_memory_dict",
+            "Y_memory_dict",
             "global_step"
             ]
     def __init__(
