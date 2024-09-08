@@ -9,9 +9,9 @@ from torch.distributed import distributed_c10d
 
 
 class LowRankApproximationState:
-  """ A class to store all the state information for
-      the communication hook
-  """
+    """ A class to store all the state information for
+        the communication hook
+    """
 
     __slots__ = [
             "n_gpus",
@@ -21,28 +21,28 @@ class LowRankApproximationState:
             "r_memory_dict",
             "global_step"
             ]
-  def __init__(
-          self,
-          n_gpus,
-          matrix_approximation_rank=8,
-          batch_tensors_with_same_shape: bool = True
-          ):
-      self.matrix_approximation_rank = matrix_approximation_rank
-      self.batch_tensors_with_same_shape = batch_tensors_with_same_shape
-      self.l_memory_dict: Dict[int, torch.Tensor] = {}
-      self.r_memory_dict: Dict[int, torch.Tensor] = {}
-      self.global_step = 0
+    def __init__(
+            self,
+            n_gpus,
+            matrix_approximation_rank=8,
+            batch_tensors_with_same_shape: bool = True
+            ):
+        self.matrix_approximation_rank = matrix_approximation_rank
+        self.batch_tensors_with_same_shape = batch_tensors_with_same_shape
+        self.l_memory_dict: Dict[int, torch.Tensor] = {}
+        self.r_memory_dict: Dict[int, torch.Tensor] = {}
+        self.global_step = 0
 
-  def __getstate__(self):
-      return {
-              slot: getattr(self, slot)
-              for slot in self.__slots__
-              }
+    def __getstate__(self):
+        return {
+                slot: getattr(self, slot)
+                for slot in self.__slots__
+                }
 
 
-  def __setstate__(self, state):
-      for slot, value in state.items():
-          setattr(self, slot, value)
+    def __setstate__(self, state):
+        for slot, value in state.items():
+            setattr(self, slot, value)
 
 
 def lwrk_hook(state: LowRankApproximationState, bucket):
