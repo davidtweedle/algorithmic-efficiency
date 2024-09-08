@@ -17,6 +17,7 @@ class LowRankApproximationState:
             "n_gpus",
             "matrix_approximation_rank",
             "batch_tensors_with_same_shape",
+            "eps",
             "l_memory_dict",
             "r_memory_dict",
             "X_memory_dict",
@@ -26,12 +27,14 @@ class LowRankApproximationState:
     def __init__(
             self,
             n_gpus,
+            eps=1e-8
             matrix_approximation_rank=8,
             batch_tensors_with_same_shape: bool = True
             ):
         self.n_gpus = n_gpus
         self.matrix_approximation_rank = matrix_approximation_rank
         self.batch_tensors_with_same_shape = batch_tensors_with_same_shape
+        self.eps = eps
         self.l_memory_dict: Dict[int, torch.Tensor] = {}
         self.r_memory_dict: Dict[int, torch.Tensor] = {}
         self.Y_memory_dict: Dict[int, torch.Tensor] = {}
@@ -161,7 +164,11 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         Y = torch.bmm(tensor, u)
         v = torch.randn(batch_size, state.matrix_approximation_rank, m, device=device)
         middle, X = torch.bmm(v, torch.cat((Y, tensor), dim=2)).split([state.matrix_approximation_rank, n], 2)
-        X = torch.linalg.lstsq(middle, X).solution
+        u, s, v = torch.svd(middle)
+        s = torch.where(s > state.eps, s ** -1, torch.ones_like(s))
+        v = torch.bmm(v, torch.diag_embed(s, dim1=-2, dim2=-1))
+        Y = torch.bmm(Y, v)
+        X = torch.bmm(u.transpose(-1,-2), X)
 
     allreduce_contiguous_uncompressed_tensors_fut = dist.all_reduce(
             uncompressed_tensors_memory, async_op=True
