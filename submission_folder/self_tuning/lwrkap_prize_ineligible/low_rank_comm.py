@@ -190,7 +190,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
             torch.bmm(l, r, out=tensor)
 
         if state.batch_tensors_with_same_shape:
-            for tensor in tensor_to_compress:
+            for tensor in tensors_to_compress:
                 if tensor.shape[0] == 1:
                     continue
                 original_tensors = shape_to_tensors[tensor.shape[1:]]
