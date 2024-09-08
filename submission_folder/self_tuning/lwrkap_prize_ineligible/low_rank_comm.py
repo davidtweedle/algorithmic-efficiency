@@ -73,8 +73,8 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
             tensors_to_compress.append(matrix)
             total_Ls_size += m * state.matrix_approximation_rank * n_gpus
             total_Rs_size += n * state.matrix_approximation_rank * n_gpus
-            total_Xs_size += m * state.matrix_approximation_rank
-            total_Ys_size += n * state.matrix_approximation_rank
+            total_Ys_size += m * state.matrix_approximation_rank
+            total_Xs_size += n * state.matrix_approximation_rank
         else:
             uncompressed_tensors.append(tensor)
 
