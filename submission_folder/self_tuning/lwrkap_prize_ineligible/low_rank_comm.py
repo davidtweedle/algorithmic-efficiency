@@ -196,7 +196,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
     return (
             allreduce_contiguous_uncompressed_tensors_fut.then(
-                unpack_uncompressed_tensors_and_all_gather_ls_and_rs
+                unpack_uncompressed_tensors_and_allgather_ls_and_rs
                 )
             .then(decompress_ls_and_rs)
             )
