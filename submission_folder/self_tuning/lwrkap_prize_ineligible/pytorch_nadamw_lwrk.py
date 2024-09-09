@@ -303,7 +303,6 @@ def update_params(workload: spec.Workload,
   loss = summed_loss / n_valid_examples
 
   loss.backward()
-  dist_nn.all_reduce(loss)
 
   if grad_clip is not None:
     torch.nn.utils.clip_grad_norm_(
