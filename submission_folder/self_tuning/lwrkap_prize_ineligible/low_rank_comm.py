@@ -156,7 +156,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         Y = torch.bmm(tensor, u)
         v = torch.randn(batch_size, state.matrix_approximation_rank, m, device=device)
         middle, X = torch.bmm(v, torch.cat((Y, tensor), dim=2)).split([state.matrix_approximation_rank, n], 2)
-        u, s, v = torch.svd(middle)
+        u, s, v = torch.linalg.svd(middle)
         s = torch.where(s > state.eps, s ** -1, torch.zeros_like(s))
         v = torch.bmm(v, torch.diag_embed(s, dim1=-2, dim2=-1))
         Y = torch.bmm(Y, v)
