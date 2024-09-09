@@ -189,7 +189,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
                 )
 
     def decompress_ls_and_rs(fut):
-        state.l_memory_dict[bucket_index] = fut.wait()[0].value().div_(n_gpus)
+        state.l_memory_dict[bucket_index] = fut.wait()[0].value()
         state.r_memory_dict[bucket_index] = fut.wait()[1].value()
         for l, r, tensor in zip(ls, rs, tensors_to_compress):
             tensor.copy_(
@@ -197,6 +197,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
                         torch.matmul(l, r), dim=0
                         )
                     )
+            tensor.div_(n_gpus)
 
         if state.batch_tensors_with_same_shape:
             for tensor in tensors_to_compress:
