@@ -7,6 +7,24 @@ import torch.distributed as dist
 import torch.distributed.algorithms.ddp_comm_hooks.default_hooks as default
 from torch.distributed import distributed_c10d
 
+def low_rank_sketch(grad, state: LowRankApproximationState):
+    batch_size, m, n = grad.shape
+    switch = m < n
+    k2 = int(state.matrix_approximation_rank * (1 + switch * 0.5))
+    k1 = int(state.matrix_approximation_rank * (1 + switch * 0.5))
+    u = torch.randn(batch_size, n, k1)
+    v = torch.randn(batch_size, k2, m)
+    Y = torch.matmul(grad, u)
+    X = torch.matmul(v, grad)
+    mid = torch.matmul(v, Y) if switch else torch.matmul(X, u)
+    U, S, Vh = torch.linalg.svd(mid, full_matrices=False)
+    S = torch.where(s > state.eps, s.pow(-0.5), torch.ones_like(s) * state.eps)
+    Vh = torch.matmul(v.transpose(-1,-2), s.diag_embed())
+    U = torch.matmul(U, s.diag_embed())
+    X = torch.matmul(U.transpose(-1,-2), X)
+    Y = torch.matmul(Y, X)
+    return Y, X
+
 
 class LowRankApproximationState:
     """ A class to store all the state information for
@@ -152,17 +170,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         x_idx += batch_size * n * state.matrix_approximation_rank
 
     for i, tensor in enumerate(tensors_to_compress):
-        batch_size, m, n = tensor.shape
-        u = torch.randn(batch_size, n, state.matrix_approximation_rank, device=device)
-        Y = torch.matmul(tensor, u)
-        v = torch.randn(batch_size, state.matrix_approximation_rank, m, device=device)
-        X = torch.matmul(v, tensor)
-        middle = torch.matmul(X, u) if n < m else torch.matmul(v, Y)
-        u, s, vh = torch.linalg.svd(middle)
-        s = torch.where(s > state.eps, s.pow(-1), torch.zeros_like(s))
-        vh = torch.matmul(vh.transpose(-1,-2), torch.diag_embed(s))
-        Y = torch.matmul(Y, vh)
-        X = torch.matmul(u.transpose(-1,-2), X)
+        Y, X = low_rank_sketch(tensor, state)
         Xs[i] = X
         Ys[i] = Y
 
