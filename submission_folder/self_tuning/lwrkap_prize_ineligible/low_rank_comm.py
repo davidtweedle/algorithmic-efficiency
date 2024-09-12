@@ -158,10 +158,10 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         v = torch.randn(batch_size, state.matrix_approximation_rank, m, device=device)
         X = torch.matmul(v, tensor)
         middle = torch.matmul(X, u) if n < m else torch.matmul(v, Y)
-        u, s, v = torch.linalg.svd(middle)
+        u, s, vh = torch.linalg.svd(middle)
         s = torch.where(s > state.eps, s.pow(-1), torch.zeros_like(s))
-        v = torch.matmul(v, torch.diag_embed(s, dim1=-2, dim2=-1))
-        Y = torch.matmul(Y, v)
+        vh = torch.matmul(vh.transpose(-1,-2), torch.diag_embed(s))
+        Y = torch.matmul(Y, vh)
         X = torch.matmul(u.transpose(-1,-2), X)
         Xs[i] = X
         Ys[i] = Y
@@ -172,7 +172,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
             ).get_future()
 
     def unpack_uncompressed_tensors_and_allgather_ls_and_rs(fut):
-        uncompressed_tensors_memory = fut.value()[0].div(n_gpus)
+        uncompressed_tensors_memory = fut.value()[0].div_(n_gpus)
         idx = 0
         for tensor in uncompressed_tensors:
             tensor.copy_(
