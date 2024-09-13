@@ -1,29 +1,8 @@
 from collections import defaultdict
-from absl import logging
 from typing import Dict
 
 import torch
 import torch.distributed as dist
-import torch.distributed.algorithms.ddp_comm_hooks.default_hooks as default
-from torch.distributed import distributed_c10d
-
-def low_rank_sketch(grad, state: LowRankApproximationState):
-    batch_size, m, n = grad.shape
-    switch = m < n
-    k2 = int(state.matrix_approximation_rank * (1 + switch * 0.5))
-    k1 = int(state.matrix_approximation_rank * (1 + switch * 0.5))
-    u = torch.randn(batch_size, n, k1)
-    v = torch.randn(batch_size, k2, m)
-    Y = torch.matmul(grad, u)
-    X = torch.matmul(v, grad)
-    mid = torch.matmul(v, Y) if switch else torch.matmul(X, u)
-    U, S, Vh = torch.linalg.svd(mid, full_matrices=False)
-    S = torch.where(s > state.eps, s.pow(-0.5), torch.ones_like(s) * state.eps)
-    Vh = torch.matmul(v.transpose(-1,-2), s.diag_embed())
-    U = torch.matmul(U, s.diag_embed())
-    X = torch.matmul(U.transpose(-1,-2), X)
-    Y = torch.matmul(Y, X)
-    return Y, X
 
 
 class LowRankApproximationState:
@@ -41,6 +20,7 @@ class LowRankApproximationState:
             "X_memory_dict",
             "Y_memory_dict",
             ]
+
     def __init__(
             self,
             n_gpus,
@@ -52,17 +32,36 @@ class LowRankApproximationState:
         self.matrix_approximation_rank = matrix_approximation_rank
         self.batch_tensors_with_same_shape = batch_tensors_with_same_shape
         self.eps = eps
-    
+
     def __getstate__(self):
         return {
                 slot: getattr(self, slot)
                 for slot in self.__slots__
                 }
 
-
     def __setstate__(self, state):
         for slot, value in state.items():
             setattr(self, slot, value)
+
+
+def low_rank_sketch(grad, state: LowRankApproximationState):
+    batch_size, m, n = grad.shape
+    switch = m < n
+    k2 = int(state.matrix_approximation_rank * (1 + switch * 0.5))
+    k1 = int(state.matrix_approximation_rank * (1.5 - switch * 0.5))
+    u = torch.randn(batch_size, n, k1)
+    v = torch.randn(batch_size, k2, m)
+    Y = torch.matmul(grad, u)
+    X = torch.matmul(v, grad)
+    mid = torch.matmul(v, Y) if switch else torch.matmul(X, u)
+    U, S, Vh = torch.linalg.svd(mid, full_matrices=False)
+    S = torch.where(S > state.eps, S, torch.ones_like(S) * state.eps)
+    S = S.pow(-0.5)
+    Vh = torch.matmul(Vh.transpose(-1, -2), S.diag_embed())
+    U = torch.matmul(U, S.diag_embed())
+    X = torch.matmul(U.transpose(-1, -2), X)
+    Y = torch.matmul(Y, Vh)
+    return Y, X
 
 
 def lwrk_hook(state: LowRankApproximationState, bucket):
@@ -174,7 +173,6 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         Xs[i] = X
         Ys[i] = Y
 
-
     allreduce_contiguous_uncompressed_tensors_fut = dist.all_reduce(
             uncompressed_tensors_memory, async_op=True
             ).get_future()
@@ -190,11 +188,19 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
         return (
                 torch.futures.collect_all(
-                    [dist.all_gather_into_tensor(l_memory_dict[bucket_index], Y_memory_dict[bucket_index], async_op=True
-                    ).get_future(),
-                    dist.all_gather_into_tensor(r_memory_dict[bucket_index], X_memory_dict[bucket_index], async_op=True
-                    ).get_future()])
-                .wait()
+                    [
+                        dist.all_gather_into_tensor(
+                            l_memory_dict[bucket_index],
+                            Y_memory_dict[bucket_index],
+                            async_op=True
+                            ).get_future(),
+                        dist.all_gather_into_tensor(
+                            r_memory_dict[bucket_index],
+                            X_memory_dict[bucket_index],
+                            async_op=True
+                            ).get_future()
+                        ]
+                    ).wait()
                 )
 
     def decompress_ls_and_rs(fut):
