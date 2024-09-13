@@ -46,11 +46,12 @@ class LowRankApproximationState:
 
 def low_rank_sketch(grad, state: LowRankApproximationState):
     batch_size, m, n = grad.shape
+    device = grad.device
     switch = m < n
     k2 = int(state.matrix_approximation_rank * (1 + switch * 0.5))
     k1 = int(state.matrix_approximation_rank * (1.5 - switch * 0.5))
-    u = torch.randn(batch_size, n, k1)
-    v = torch.randn(batch_size, k2, m)
+    u = torch.randn(batch_size, n, k1, device=device)
+    v = torch.randn(batch_size, k2, m, device=device)
     Y = torch.matmul(grad, u)
     X = torch.matmul(v, grad)
     mid = torch.matmul(v, Y) if switch else torch.matmul(X, u)
