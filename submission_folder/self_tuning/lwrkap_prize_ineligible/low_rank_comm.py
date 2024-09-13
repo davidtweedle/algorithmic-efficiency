@@ -56,10 +56,8 @@ def low_rank_sketch(grad, state: LowRankApproximationState):
     X = torch.matmul(v, grad)
     mid = torch.matmul(v, Y) if switch else torch.matmul(X, u)
     U, S, Vh = torch.linalg.svd(mid, full_matrices=False)
-    S = torch.where(S > state.eps, S, torch.ones_like(S) * state.eps)
-    S = S.pow(-0.5)
+    S = torch.where(S > state.eps, S.pow(-1), torch.ones_like(S) * state.eps)
     Vh = torch.matmul(Vh.transpose(-1, -2), S.diag_embed())
-    U = torch.matmul(U, S.diag_embed())
     X = torch.matmul(U.transpose(-1, -2), X)
     Y = torch.matmul(Y, Vh)
     return Y, X
