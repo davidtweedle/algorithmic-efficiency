@@ -202,12 +202,13 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
                             async_op=True
                             ).get_future()
                         ]
-                    ).wait()
+                    )
                 )
 
-    def decompress_ls_and_rs(fut_list):
-        l_memory_dict[bucket_index] = fut_list[0].value()
-        r_memory_dict[bucket_index] = fut_list[1].value()
+    def decompress_ls_and_rs(fut):
+        fut_list = fut.value()
+        l_memory_dict[bucket_index] = fut_list[0]
+        r_memory_dict[bucket_index] = fut_list[1]
         for l, r, tensor in zip(ls, rs, tensors_to_compress):
             tensor.copy_(
                     torch.sum(
