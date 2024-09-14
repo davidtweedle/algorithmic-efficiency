@@ -202,7 +202,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
                             async_op=True
                             ).get_future()
                         ]
-                    )
+                    ).wait()
                 )
 
     def decompress_ls_and_rs(fut_list):
