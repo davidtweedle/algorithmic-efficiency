@@ -47,19 +47,20 @@ class LowRankApproximationState:
 def low_rank_sketch(grad, state: LowRankApproximationState):
     batch_size, m, n = grad.shape
     device = grad.device
+    dtype = grad.dtype
     switch = m < n
     k2 = int(state.matrix_approximation_rank * (1 + switch * 0.5))
     k1 = int(state.matrix_approximation_rank * (1.5 - switch * 0.5))
-    u = torch.randn(batch_size, n, k1, device=device)
-    v = torch.randn(batch_size, k2, m, device=device)
+    u = torch.randn(batch_size, n, k1, dtype=dtype, device=device)
+    v = torch.randn(batch_size, k2, m, dtype=dtype, device=device)
     Y = torch.matmul(grad, u)
     X = torch.matmul(v, grad)
     mid = torch.matmul(v, Y) if switch else torch.matmul(X, u)
-    U, S, Vh = torch.linalg.svd(mid, full_matrices=False)
+    u, S, v = torch.linalg.svd(mid, full_matrices=False)
     S = torch.where(S > state.eps, S, torch.ones_like(S) * state.eps).pow(-1)
-    Vh = torch.matmul(Vh.transpose(-1, -2), S.diag_embed())
-    X = torch.matmul(U.transpose(-1, -2), X)
-    Y = torch.matmul(Y, Vh)
+    v = torch.matmul(v.transpose(-1, -2), S.diag_embed())
+    X = torch.matmul(u.transpose(-1, -2), X)
+    Y = torch.matmul(Y, v)
     return Y, X
 
 
@@ -181,12 +182,14 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         idx = 0
         for tensor in uncompressed_tensors:
             tensor.copy_(
-                    uncompressed_tensors_memory[idx: idx + tensor.numel()].view_as(tensor)
+                    uncompressed_tensors_memory[
+                        idx: idx + tensor.numel()
+                        ].view_as(tensor)
                     )
             idx += tensor.numel()
 
         return (
-                torch.futures.collect_all(
+                torch.futures.wait_all(
                     [
                         dist.all_gather_into_tensor(
                             l_memory_dict[bucket_index],
@@ -199,12 +202,12 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
                             async_op=True
                             ).get_future()
                         ]
-                    ).wait()
+                    )
                 )
 
-    def decompress_ls_and_rs(fut):
-        l_memory_dict[bucket_index] = fut.wait()[0].value()
-        r_memory_dict[bucket_index] = fut.wait()[1].value()
+    def decompress_ls_and_rs(fut_list):
+        l_memory_dict[bucket_index] = fut_list[0].value()
+        r_memory_dict[bucket_index] = fut_list[1].value()
         for l, r, tensor in zip(ls, rs, tensors_to_compress):
             tensor.copy_(
                     torch.sum(
@@ -215,6 +218,8 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
         if state.batch_tensors_with_same_shape:
             for tensor in tensors_to_compress:
+                if tensor.shape[0] == 1:
+                    continue
                 original_tensors = shape_to_tensors[tensor.shape[1:]]
                 for i, original_tensor in enumerate(original_tensors):
                     original_tensor.copy_(tensor[i])
