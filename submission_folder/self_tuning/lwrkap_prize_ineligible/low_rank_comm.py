@@ -15,10 +15,6 @@ class LowRankApproximationState:
             "matrix_approximation_rank",
             "batch_tensors_with_same_shape",
             "eps",
-            "l_memory_dict",
-            "r_memory_dict",
-            "X_memory_dict",
-            "Y_memory_dict",
             ]
 
     def __init__(
@@ -80,10 +76,6 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     total_Rs_size = 0
     total_Xs_size = 0
     total_Ys_size = 0
-    l_memory_dict: Dict[int, torch.Tensor] = {}
-    r_memory_dict: Dict[int, torch.Tensor] = {}
-    Y_memory_dict: Dict[int, torch.Tensor] = {}
-    X_memory_dict: Dict[int, torch.Tensor] = {}
 
     for tensor in tensors:
         matrix = tensor.view(tensor.shape[0], -1)
@@ -103,16 +95,16 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
             else torch.tensor([], device=device, dtype=dtype)
             )
 
-    l_memory_dict[bucket_index] = torch.empty(
+    l_memory = torch.empty(
             total_Ls_size, device=device, dtype=dtype
             )
-    r_memory_dict[bucket_index] = torch.empty(
+    r_memory = torch.empty(
             total_Rs_size, device=device, dtype=dtype
             )
-    X_memory_dict[bucket_index] = torch.empty(
+    X_memory = torch.empty(
             total_Xs_size, device=device, dtype=dtype
             )
-    Y_memory_dict[bucket_index] = torch.empty(
+    Y_memory = torch.empty(
             total_Ys_size, device=device, dtype=dtype
             )
     shape_to_tensors = defaultdict(list)
@@ -144,22 +136,22 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         batch_size, m, n = tensor.shape
         tensors_to_compress.append(tensor)
         ls.append(
-                l_memory_dict[bucket_index][
+                l_memory[
                     l_idx: l_idx + batch_size * m * state.matrix_approximation_rank * n_gpus
                     ].view(n_gpus, batch_size, m, state.matrix_approximation_rank)
                 )
         rs.append(
-                r_memory_dict[bucket_index][
+                r_memory[
                     r_idx: r_idx + batch_size * n * state.matrix_approximation_rank * n_gpus
                     ].view(n_gpus, batch_size, state.matrix_approximation_rank, n)
                 )
         Ys.append(
-                Y_memory_dict[bucket_index][
+                Y_memory[
                     y_idx: y_idx + batch_size * m * state.matrix_approximation_rank
                     ].view(batch_size, m, state.matrix_approximation_rank)
                 )
         Xs.append(
-                X_memory_dict[bucket_index][
+                X_memory[
                     x_idx: x_idx + batch_size * n * state.matrix_approximation_rank
                     ].view(batch_size, state.matrix_approximation_rank, n)
                 )
@@ -192,13 +184,13 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
                 torch.futures.wait_all(
                     [
                         dist.all_gather_into_tensor(
-                            l_memory_dict[bucket_index],
-                            Y_memory_dict[bucket_index],
+                            l_memory,
+                            Y_memory,
                             async_op=True
                             ).get_future(),
                         dist.all_gather_into_tensor(
-                            r_memory_dict[bucket_index],
-                            X_memory_dict[bucket_index],
+                            r_memory,
+                            X_memory,
                             async_op=True
                             ).get_future()
                         ]
@@ -207,12 +199,12 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
     def decompress_ls_and_rs(fut):
         fut_list = fut.value()
-        l_memory_dict[bucket_index] = fut_list[0]
-        r_memory_dict[bucket_index] = fut_list[1]
+        l_memory = fut_list[0]
+        r_memory = fut_list[1]
         for l, r, tensor in zip(ls, rs, tensors_to_compress):
             tensor.copy_(
                     torch.sum(
-                        torch.matmul(l, r), dim=0
+                        torch.matmul(l, r), dim=0, keepdim=True
                         )
                     )
             tensor.div_(n_gpus)
