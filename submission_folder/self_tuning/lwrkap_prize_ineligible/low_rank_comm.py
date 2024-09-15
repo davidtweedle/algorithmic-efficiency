@@ -162,8 +162,8 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
     for i, tensor in enumerate(tensors_to_compress):
         Y, X = low_rank_sketch(tensor, state)
-        Xs[i] = X
-        Ys[i] = Y
+        Xs[i] = X.div_(n_gpus.pow(0.5))
+        Ys[i] = Y.div_(n_gpus.pow(0.5))
 
     allreduce_contiguous_uncompressed_tensors_fut = dist.all_reduce(
             uncompressed_tensors_memory, async_op=True
@@ -204,10 +204,9 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         for l, r, tensor in zip(ls, rs, tensors_to_compress):
             tensor.copy_(
                     torch.sum(
-                        torch.matmul(l, r), dim=0, keepdim=True
+                        torch.matmul(l, r), dim=0
                         )
                     )
-            tensor.div_(n_gpus)
 
         if state.batch_tensors_with_same_shape:
             for tensor in tensors_to_compress:
