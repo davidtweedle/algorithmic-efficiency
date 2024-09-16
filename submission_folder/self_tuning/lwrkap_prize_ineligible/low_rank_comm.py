@@ -297,7 +297,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
             )
 
 
-def simple_lwrk_hook(lrka_state: LowRankApproximationState, bucket):
+def simple_lwrk_hook(state: LowRankApproximationState, bucket):
     input_tensor = bucket.buffer()
     dtype = input_tensor.dtype
     device = input_tensor.device
@@ -306,7 +306,7 @@ def simple_lwrk_hook(lrka_state: LowRankApproximationState, bucket):
     for grad in bucket.gradients():
         grad = sketch_approximator(grad, rank, device, n_gpus)
     return dist.all_reduce(
-            bucket.buffer(), 
+            input_tensor, 
             async_op=True
             ).get_future(
                     ).then(lambda fut: fut.value()[0]
