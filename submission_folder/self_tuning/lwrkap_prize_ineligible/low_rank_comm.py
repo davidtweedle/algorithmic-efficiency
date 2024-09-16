@@ -1,9 +1,12 @@
+import logging
 from collections import defaultdict
 from typing import Dict
 
 import torch
 import torch.distributed as dist
 
+
+logger = logging.getLogger(__name__)
 
 class LowRankApproximationState:
     """ A class to store all the state information for
@@ -15,6 +18,7 @@ class LowRankApproximationState:
             "matrix_approximation_rank",
             "batch_tensors_with_same_shape",
             "eps",
+            "global_step"
             ]
 
     def __init__(
@@ -28,6 +32,7 @@ class LowRankApproximationState:
         self.matrix_approximation_rank = matrix_approximation_rank
         self.batch_tensors_with_same_shape = batch_tensors_with_same_shape
         self.eps = eps
+        self.global_step = 0
 
     def __getstate__(self):
         return {
@@ -38,6 +43,10 @@ class LowRankApproximationState:
     def __setstate__(self, state):
         for slot, value in state.items():
             setattr(self, slot, value)
+
+    def maybe_increase_iter(self, bucket):
+        if bucket.is_last():
+            self.global_step += 1
 
 
 def low_rank_sketch(grad, state: LowRankApproximationState):
@@ -54,8 +63,9 @@ def low_rank_sketch(grad, state: LowRankApproximationState):
     mid = torch.matmul(v, Y) if switch else torch.matmul(X, u)
     u, S, v = torch.linalg.svd(mid, full_matrices=False)
     S = torch.where(S > state.eps, S, torch.ones_like(S) * state.eps)
-    S.pow_(-0.5)
+    S.pow_(-1)
     S.div_(state.n_gpus)
+    S.pow_(0.5)
     v = torch.matmul(v.transpose(-1, -2), S.diag_embed())
     u = torch.matmul(S.diag_embed(), u.transpose(-1, -2))
     X = torch.matmul(u, X)
@@ -91,6 +101,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
             total_Xs_size += n * state.matrix_approximation_rank
         else:
             uncompressed_tensors.append(tensor)
+            logging.info(f"Uncompressed tensor shape {tensor.shape}, bucket {bucket_index}")
 
     uncompressed_tensors_memory = (
             torch.cat([tensor.view(-1) for tensor in uncompressed_tensors])
@@ -137,6 +148,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     x_idx = 0
     for tensor in maybe_batched_tensors_to_compress():
         batch_size, m, n = tensor.shape
+        logger.info(f"Device: {device}, dtype: {dtype}, Bucket number: {bucket_index}, Tensor shape {tensor.shape}")
         tensors_to_compress.append(tensor)
         ls.append(
                 l_memory[
@@ -166,7 +178,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     for i, tensor in enumerate(tensors_to_compress):
         Ys[i], Xs[i] = low_rank_sketch(tensor, state)
         Xs[i]
-        Ys[i].div_(n_gpus)
+        Ys[i]
 
     allreduce_contiguous_uncompressed_tensors_fut = dist.all_reduce(
             uncompressed_tensors_memory, async_op=True
@@ -221,6 +233,9 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
         if torch.cuda.is_available():
             torch.cuda.synchronize(device)
+
+        state.maybe_increase_iter(bucket)
+        
 
         return input_tensor
 
