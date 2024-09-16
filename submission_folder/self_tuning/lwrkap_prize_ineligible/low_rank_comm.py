@@ -101,7 +101,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
             total_Xs_size += n * state.matrix_approximation_rank
         else:
             uncompressed_tensors.append(tensor)
-            if state.global_step == 5 and device=="cuda:0":
+            if state.global_step == 5 and device==torch.device("cuda:0"):
                 logger.info(f"Uncompressed tensor shape {tensor.shape}, bucket {bucket_index}")
 
     uncompressed_tensors_memory = (
@@ -149,7 +149,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     x_idx = 0
     for tensor in maybe_batched_tensors_to_compress():
         batch_size, m, n = tensor.shape
-        if state.global_step == 5 and device == "cuda:0":
+        if state.global_step == 5 and device == torch.device("cuda:0"):
             logger.info(f"Device: {device}, dtype: {dtype}, Bucket number: {bucket_index}, Tensor shape {tensor.shape}")
         tensors_to_compress.append(tensor)
         ls.append(
