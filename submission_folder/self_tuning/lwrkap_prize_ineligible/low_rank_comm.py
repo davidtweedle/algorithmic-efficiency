@@ -51,7 +51,7 @@ class LowRankApproximationState:
 
 def low_rank_sketch(grad, state: LowRankApproximationState):
     batch_size, m, n = grad.shape
-    norm = torch.linalg.matrix_norm(grad, dim=(-1,-1))
+    norm = torch.linalg.matrix_norm(grad, dim=(-1,-2))
     switch = m < n
     device = grad.device
     dtype = grad.dtype
