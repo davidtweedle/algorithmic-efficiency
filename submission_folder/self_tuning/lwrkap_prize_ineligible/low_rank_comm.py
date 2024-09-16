@@ -51,7 +51,7 @@ class LowRankApproximationState:
 
 def low_rank_sketch(grad, state: LowRankApproximationState):
     batch_size, m, n = grad.shape
-    norm = torch.linalg.matrix_norm(grad, dim=(-1,-2))
+    norm = torch.linalg.matrix_norm(grad, dim=(-1,-2)) * state.eps
     switch = m < n
     device = grad.device
     dtype = grad.dtype
@@ -66,7 +66,7 @@ def low_rank_sketch(grad, state: LowRankApproximationState):
     X = torch.matmul(v, grad)
     mid = torch.matmul(X, u)
     u, S, v = torch.linalg.svd(mid, full_matrices=False)
-    S = torch.where(S > state.eps * norm[:,:, None], S.pow(-1), torch.zeros_like(S))
+    S = torch.where(S > norm[:, None], S.pow(-1), torch.zeros_like(S))
     S.div_(state.n_gpus)
     S.pow_(0.5)
     v = torch.matmul(v.transpose(-1, -2), S.diag_embed())
