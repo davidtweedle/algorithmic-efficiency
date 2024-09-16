@@ -49,6 +49,51 @@ class LowRankApproximationState:
             self.global_step += 1
 
 
+def svd_approximator(grad, upper_bound_rank, svd_rank, device, n_gpus):
+    oldshape = grad.shape
+    reshaped_grad = grad.reshape(oldshape[0], -1)
+    m, n, _ = *reshaped_grad.shape, 1
+    upper_rank = min(m, n, upper_bound_rank)
+    rank = min(upper_rank, svd_rank)
+    if upper_rank > 1:
+        try:
+            U, S, V = torch.svd_lowrank(
+                    reshaped_grad,
+                    q=upper_rank
+                    )
+            U = U[:, :rank]
+            S = S[:rank]
+            V = V[:, :rank]
+            reshaped_grad = (U * S) @ V.T
+        except torch._C._LinAlgError as err:
+            lrka_state.num_errs += 1
+            logging.info(f'SVD approximator threw error {err}')
+    grad = reshaped_grad.reshape(*oldshape)
+    grad.div_(n_gpus)
+    return grad
+
+def sketch_approximator(grad, low_rank, device, n_gpus):
+    ## figure out how to set random seeds on each device independently
+    oldshape = grad.shape
+    reshaped_grad = grad.reshape(oldshape[0], -1)
+    m, n, _ = *reshaped_grad.shape, 1
+    switch = m < n
+    if switch:
+        reshaped_grad = reshaped_grad.transpose(-1, -2)
+        m, n = n, m
+    if n > low_rank:
+        Y = torch.randn(low_rank, m, device=device)
+        Y = torch.matmul(Y, reshaped_grad)
+        X = torch.randn(n, int(low_rank * 1.5), device=device)
+        Y = torch.linalg.lstsq(torch.matmul(Y,X),Y).solution
+        X = torch.matmul(reshaped_grad, X)
+        grad = torch.matmul(X, Y).reshape(*oldshape)
+        grad.div_(n_gpus)
+        if switch:
+            grad = grad.transpose(-1, -2)
+    return grad
+
+
 def low_rank_sketch(grad, state: LowRankApproximationState):
     batch_size, m, n = grad.shape
     norm = torch.linalg.matrix_norm(grad, dim=(-1,-2)) * state.eps
@@ -250,3 +295,21 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
                 )
             .then(decompress_ls_and_rs)
             )
+
+
+def simple_lwrk_hook(lrka_state: LowRankApproximationState, bucket):
+    input_tensor = bucket.buffer()
+    dtype = input_tensor.dtype
+    device = input_tensor.device
+    n_gpus = state.n_gpus
+    rank = state.matrix_approximation_rank
+    for grad in bucket.gradients():
+        grad = sketch_approximator(grad, rank, device, n_gpus)
+    return dist.all_reduce(
+            bucket.buffer(), 
+            async_op=True
+            ).get_future(
+                    ).then(lambda fut: fut.value()[0]
+                           )
+
+
