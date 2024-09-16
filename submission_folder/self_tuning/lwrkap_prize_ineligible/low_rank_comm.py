@@ -55,6 +55,7 @@ def low_rank_sketch(grad, state: LowRankApproximationState):
     device = grad.device
     dtype = grad.dtype
     if switch:
+        m, n = n, m
         grad = grad.transpose(-1, -2)
     k1 = state.matrix_approximation_rank
     k2 = int(1.5 * k1)
