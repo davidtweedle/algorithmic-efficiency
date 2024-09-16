@@ -162,8 +162,8 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
     for i, tensor in enumerate(tensors_to_compress):
         Ys[i], Xs[i] = low_rank_sketch(tensor, state)
-        Xs[i].div_(torch.sqrt(n_gpus))
-        Ys[i].div_(torch.sqrt(n_gpus))
+        Xs[i]
+        Ys[i].div_(n_gpus)
 
     allreduce_contiguous_uncompressed_tensors_fut = dist.all_reduce(
             uncompressed_tensors_memory, async_op=True
