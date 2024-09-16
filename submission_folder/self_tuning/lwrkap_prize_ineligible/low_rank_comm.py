@@ -304,7 +304,7 @@ def simple_lwrk_hook(state: LowRankApproximationState, bucket):
     n_gpus = state.n_gpus
     rank = state.matrix_approximation_rank
     for grad in bucket.gradients():
-        grad = torch.zeros_like(grad)
+        grad.copy_(torch.zeros_like(grad))
     return dist.all_reduce(
             input_tensor, 
             async_op=True
