@@ -51,8 +51,11 @@ class LowRankApproximationState:
 
 def low_rank_sketch(grad, state: LowRankApproximationState):
     batch_size, m, n = grad.shape
+    switch = m < n
     device = grad.device
     dtype = grad.dtype
+    if switch:
+        grad = grad.transpose(-1, -2)
     k1 = state.matrix_approximation_rank
     k2 = int(1.5 * k1)
     u = torch.randn(batch_size, n, k1, dtype=dtype, device=device)
@@ -61,14 +64,15 @@ def low_rank_sketch(grad, state: LowRankApproximationState):
     X = torch.matmul(v, grad)
     mid = torch.matmul(X, u)
     u, S, v = torch.linalg.svd(mid, full_matrices=False)
-    S = torch.where(S > state.eps, S, torch.ones_like(S) * state.eps)
-    S.pow_(-1)
+    S = torch.where(S > state.eps, S.pow(-1), torch.zeros_like(S))
     S.div_(state.n_gpus)
     S.pow_(0.5)
     v = torch.matmul(v.transpose(-1, -2), S.diag_embed())
     u = torch.matmul(S.diag_embed(), u.transpose(-1, -2))
     X = torch.matmul(u, X)
     Y = torch.matmul(Y, v)
+    if switch:
+        X, Y = Y.transpose(-1, -2), X.transpose(-1, -2)
     return Y, X
 
 
@@ -92,9 +96,6 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     for tensor in tensors:
         matrix = tensor.view(tensor.shape[0], -1)
         m, n = matrix.shape
-        if m < n:
-            matrix = matrix.transpose(-1, -2)
-            m, n = n, m
         if n > state.matrix_approximation_rank:
             tensors_to_compress.append(matrix)
             total_Ls_size += m * state.matrix_approximation_rank * n_gpus
