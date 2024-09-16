@@ -87,10 +87,11 @@ def sketch_approximator(grad, low_rank, device, n_gpus):
         X = torch.randn(n, int(low_rank * 1.5), device=device)
         Y = torch.linalg.lstsq(torch.matmul(Y,X),Y).solution
         X = torch.matmul(reshaped_grad, X)
-        grad = torch.matmul(X, Y).reshape(*oldshape)
+        grad = torch.matmul(X, Y)
         grad.div_(n_gpus)
         if switch:
             grad = grad.transpose(-1, -2)
+        grad = grad.reshape(*oldshape)
     return grad
 
 
