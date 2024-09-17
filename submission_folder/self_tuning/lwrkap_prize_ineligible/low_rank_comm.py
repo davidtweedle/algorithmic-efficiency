@@ -76,6 +76,31 @@ def svd_approximator(grad, upper_bound_rank, svd_rank, device, n_gpus):
     grad.div_(n_gpus)
     return grad
 
+
+def normalize_sv_approximator(grad, upper_bound_rank, svd_rank, device, n_gpus):
+    oldshape = grad.shape
+    reshaped_grad = grad.reshape(oldshape[0], -1)
+    m, n, _ = *reshaped_grad.shape, 1
+    upper_rank = min(m, n, upper_bound_rank)
+    rank = min(upper_rank, svd_rank)
+    if min(m, n) > 1:
+        try:
+            U, S, V = torch.svd_lowrank(
+                    reshaped_grad,
+                    q=upper_rank
+                    )
+            U = U[:, :rank]
+            S = S[0]
+            V = V[:, :rank]
+            reshaped_grad = (U * S) @ V.T
+        except torch._C._LinAlgError as err:
+            lrka_state.num_errs += 1
+            logging.info(f'SVD approximator threw error {err}')
+    grad = reshaped_grad.reshape(*oldshape)
+    grad.div_(n_gpus)
+    return grad
+
+
 def sketch_approximator(grad, low_rank, device, n_gpus):
     ## figure out how to set random seeds on each device independently
     oldshape = grad.shape
@@ -311,7 +336,7 @@ def simple_lwrk_hook(state: LowRankApproximationState, bucket):
     rank = state.matrix_approximation_rank
     for grad in bucket.gradients():
         grad.copy_(
-                svd_approximator(
+                normalize_sv_approximator(
                     grad,
                     upper_bound_rank,
                     rank,
