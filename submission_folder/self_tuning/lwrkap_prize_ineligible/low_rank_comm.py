@@ -16,6 +16,7 @@ class LowRankApproximationState:
     __slots__ = [
             "n_gpus",
             "matrix_approximation_rank",
+            "upper_bound_rank",
             "batch_tensors_with_same_shape",
             "eps",
             "global_step"
@@ -26,6 +27,7 @@ class LowRankApproximationState:
             n_gpus,
             eps=1e-16,
             matrix_approximation_rank=8,
+            upper_bound_rank=32,
             batch_tensors_with_same_shape: bool = True
             ):
         self.n_gpus = n_gpus
@@ -85,7 +87,7 @@ def sketch_approximator(grad, low_rank, device, n_gpus):
         Y = torch.randn(low_rank, m, device=device)
         Y = torch.matmul(Y, reshaped_grad)
         X = torch.randn(n, int(low_rank * 1.5), device=device)
-        Y = torch.linalg.lstsq(torch.matmul(Y,X),Y).solution
+        Y = torch.linalg.lstsq(torch.matmul(Y, X), Y).solution
         X = torch.matmul(reshaped_grad, X)
         grad = torch.matmul(X, Y)
         grad.div_(n_gpus)
@@ -303,9 +305,18 @@ def simple_lwrk_hook(state: LowRankApproximationState, bucket):
     dtype = input_tensor.dtype
     device = input_tensor.device
     n_gpus = state.n_gpus
+    upper_bound_rank = state.upper_bound_rank
     rank = state.matrix_approximation_rank
     for grad in bucket.gradients():
-        grad.copy_(sketch_approximator(grad, rank, device, n_gpus))
+        grad.copy_(
+                svd_approximator(
+                    grad,
+                    upper_bound_rank,
+                    rank,
+                    device,
+                    n_gpus
+                    )
+                )
     return dist.all_reduce(
             input_tensor, 
             async_op=True
