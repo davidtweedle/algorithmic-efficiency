@@ -28,14 +28,15 @@ class LowRankApproximationState:
             eps=1e-16,
             matrix_approximation_rank=8,
             upper_bound_rank=32,
-            batch_tensors_with_same_shape: bool = True
+            batch_tensors_with_same_shape: bool = True,
+            global_step=0
             ):
         self.n_gpus = n_gpus
         self.matrix_approximation_rank = matrix_approximation_rank
         self.upper_bound_rank = upper_bound_rank
         self.batch_tensors_with_same_shape = batch_tensors_with_same_shape
         self.eps = eps
-        self.global_step = 0
+        self.global_step = global_step
 
     def __getstate__(self):
         return {
