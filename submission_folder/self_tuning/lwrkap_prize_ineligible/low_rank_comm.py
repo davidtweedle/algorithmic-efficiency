@@ -332,13 +332,11 @@ def simple_lwrk_hook(state: LowRankApproximationState, bucket):
     dtype = input_tensor.dtype
     device = input_tensor.device
     n_gpus = state.n_gpus
-    upper_bound_rank = state.upper_bound_rank
     rank = state.matrix_approximation_rank
     for grad in bucket.gradients():
         grad.copy_(
-                normalize_sv_approximator(
+                sketch_approximator(
                     grad,
-                    upper_bound_rank,
                     rank,
                     device,
                     n_gpus
