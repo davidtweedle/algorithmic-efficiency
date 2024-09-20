@@ -76,11 +76,11 @@ def svd_approximator(grad, upper_bound_rank, svd_rank, device, n_gpus):
     return grad
 
 
-def normalize_sv_approximator(grad, upper_bound_rank, svd_rank, device, n_gpus):
+def normalize_sv_approximator(grad, rank, device, n_gpus):
     oldshape = grad.shape
     reshaped_grad = grad.reshape(oldshape[0], -1)
     m, n, _ = *reshaped_grad.shape, 1
-    rank = min(m, n, upper_bound_rank)
+    rank = min(m, n, rank)
     if min(m, n) > 1:
         try:
             U, S, V = torch.svd_lowrank(
