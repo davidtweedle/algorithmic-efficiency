@@ -27,7 +27,7 @@ def init_optimizer_state(workload: spec.Workload,
           torch.optim.SGD(
               model_params.parameters(),
               lr=hyperparameters.learning_rate,
-              momentum=hyperparameters.beta1,
+              momentum=1 - hyperparameters.one_minus_beta1,
               weight_decay=hyperparameters.weight_decay,
               nesterov=False),
   }
