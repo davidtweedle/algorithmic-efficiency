@@ -89,7 +89,7 @@ def normalize_sv_approximator(grad, rank, device, n_gpus):
                     )
             U = U[:, :rank]
             V = V[:, :rank]
-            reshaped_grad = (U * S[0]) @ V.T
+            reshaped_grad = U @ V.T
         except torch._C._LinAlgError as err:
             logging.info(f'SVD approximator threw error {err}')
     grad = reshaped_grad.reshape(*oldshape)
