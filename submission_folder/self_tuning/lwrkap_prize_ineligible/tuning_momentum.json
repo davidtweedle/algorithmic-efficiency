@@ -1,6 +1,6 @@
 {
   "learning_rate": {
-      "feasible_points": [1e-3]
+      "feasible_points": [1e-2]
   },
   "one_minus_beta1": {
       "min": 5e-3, "max": 0.3, "scaling": "log"
