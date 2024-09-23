@@ -75,7 +75,7 @@ def svd_approximator(grad, upper_bound_rank, svd_rank, device, n_gpus):
     grad.div_(n_gpus)
     return grad
 
-
+@torch.compile
 def normalize_sv_approximator(grad, rank, device, n_gpus):
     oldshape = grad.shape
     reshaped_grad = grad.reshape(oldshape[0], -1)
@@ -83,12 +83,11 @@ def normalize_sv_approximator(grad, rank, device, n_gpus):
     rank = min(m, n, rank)
     if min(m, n) > 1:
         try:
-            U, S, V = torch.svd_lowrank(
+            U, _, V = torch.svd_lowrank(
                     reshaped_grad,
-                    q=rank
+                    q=rank,
+                    niter=1
                     )
-            U = U[:, :rank]
-            V = V[:, :rank]
             reshaped_grad = U @ V.T
         except torch._C._LinAlgError as err:
             logging.info(f'SVD approximator threw error {err}')
@@ -330,7 +329,7 @@ def simple_lwrk_hook(state: LowRankApproximationState, bucket):
     for grad in bucket.gradients():
         grad.copy_(
                 normalize_sv_approximator(
-                    grad,
+                    grad.detach(),
                     rank,
                     device,
                     n_gpus

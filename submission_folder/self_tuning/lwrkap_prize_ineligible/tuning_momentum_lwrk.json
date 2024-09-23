@@ -15,7 +15,7 @@
       "feasible_points": [0.1, 0.2]
   },
   "dropout_rate": {
-      "feasible_points": [0.0, 0.1]
+      "feasible_points": [0.0]
   },
   "decay_steps_factor": {
     "feasible_points": [0.9]
