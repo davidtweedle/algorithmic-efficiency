@@ -329,7 +329,7 @@ def simple_lwrk_hook(state: LowRankApproximationState, bucket):
     for grad in bucket.gradients():
         grad.copy_(
                 normalize_sv_approximator(
-                    grad.detach(),
+                    grad.clone().detach(),
                     rank,
                     device,
                     n_gpus
