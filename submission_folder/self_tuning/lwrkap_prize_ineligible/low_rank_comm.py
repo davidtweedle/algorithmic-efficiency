@@ -5,6 +5,7 @@ from typing import Dict
 import torch
 import torch.distributed as dist
 
+from torch.distributed.algorithms.ddp_comm_hooks import default_hooks as default
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +149,10 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     bucket_index = bucket.index()
 
     tensors = bucket.gradients()
+    if state.global_step == 0:
+        state.maybe_increase_iter(bucket)
+        return default._allreduce_fut(group_to_use, input_tensor)
+
     tensors_to_compress, uncompressed_tensors = [], []
     total_Ls_size = 0
     total_Rs_size = 0
