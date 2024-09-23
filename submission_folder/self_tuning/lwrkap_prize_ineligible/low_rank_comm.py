@@ -151,7 +151,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     tensors = bucket.gradients()
     if state.global_step == 0:
         state.maybe_increase_iter(bucket)
-        return default._allreduce_fut(input_tensor)
+        return default._allreduce_fut(tensor=input_tensor)
 
     tensors_to_compress, uncompressed_tensors = [], []
     total_Ls_size = 0
