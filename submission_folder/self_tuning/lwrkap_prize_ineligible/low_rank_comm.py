@@ -121,31 +121,20 @@ def sketch_approximator(grad, low_rank, device, n_gpus):
 
 def low_rank_sketch(grad, state: LowRankApproximationState):
     batch_size, m, n = grad.shape
-    norm = torch.linalg.matrix_norm(grad, dim=(-1,-2)) * state.eps
-    switch = m < n
-    device = grad.device
-    dtype = grad.dtype
-    if switch:
-        m, n = n, m
-        grad = grad.transpose(-1, -2)
-    k1 = state.matrix_approximation_rank
-    k2 = int(1.5 * k1)
-    u = torch.randn(batch_size, n, k1, dtype=dtype, device=device)
-    v = torch.randn(batch_size, k2, m, dtype=dtype, device=device)
-    Y = torch.matmul(grad, u)
-    X = torch.matmul(v, grad)
-    mid = torch.matmul(X, u)
-    u, S, v = torch.linalg.svd(mid, full_matrices=False)
-    S = torch.where(S > norm[:, None], S.pow(-1), torch.zeros_like(S))
-    S.div_(state.n_gpus)
-    S.pow_(0.5)
-    v = torch.matmul(v.transpose(-1, -2), S.diag_embed())
-    u = torch.matmul(S.diag_embed(), u.transpose(-1, -2))
-    X = torch.matmul(u, X)
-    Y = torch.matmul(Y, v)
-    if switch:
-        X, Y = Y.transpose(-1, -2), X.transpose(-1, -2)
-    return Y, X
+    rank = min(m, n, state.matrix_approximation_rank)
+    U, V = grad, None
+    if min(m, n) > 1:
+        try:
+            U, _, V = torch.svd_lowrank(
+                    grad,
+                    q=rank,
+                    niter=1
+                    )
+            V = V.transpose(-1, -2)
+        except torch._C._LinAlgError as err:
+            logging.info(f'SVD approximator threw error {err}')
+    U.div_(state.n_gpus)
+    return U, V
 
 
 def lwrk_hook(state: LowRankApproximationState, bucket):
