@@ -121,37 +121,9 @@ def sketch_approximator(grad, low_rank, device, n_gpus):
 
 
 def low_rank_sketch(grad, state: LowRankApproximationState):
-    batch_size, m, n = grad.shape
     rank = state.matrix_approximation_rank
-    dtype = grad.dtype
-    device = grad.device
-    switch = m < n
-    # X = grad * R
-    # Q = X.QR.Q
-    # X.T = Q^T * A
-    # Q = X.QR.Q
-    # X = A * Q
-    # Q = X.QR.Q
-    # 
-    if switch:
-        grad = grad.transpose(-1, -2)
-        m, n = n, m
-    R = torch.randn(batch_size, n, rank, device=device, dtype=dtype)
-    X = torch.matmul(grad, R)
-    a, tau = torch.geqrf(X)
-    X = torch.ormqr(a, tau, grad.transpose(-1, -2), left=False)
-    a, tau = torch.geqrf(X)
-    X = torch.ormqr(a, tau, grad, left=False)
-    a, tau = torch.geqrf(X)
-    B = torch.ormqr(a, tau, grad, transpose=True)
-    U, S, Vh = torch.linalg.svd(B, full_matrices=False)
-    U = torch.ormqr(a, tau, U)
-    if switch:
-        U, Vh = Vh.transpose(-1, -2), U.transpose(-1, -2)
-    return U, Vh
-
-
-
+    U, _, V = torch.svd_lowrank(grad, niter=2, q=rank)
+    return U, V.transpose(-1, -2)
 
 
 def lwrk_hook(state: LowRankApproximationState, bucket):
@@ -165,9 +137,8 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     bucket_index = bucket.index()
 
     tensors = bucket.gradients()
-    if state.global_step == 0:
-        state.maybe_increase_iter(bucket)
-        return default._allreduce_fut(process_group=None, tensor=input_tensor)
+    if state.global_step == 0 and bucket.is_last():
+        print(input_tensor.requires_grad())
 
     tensors_to_compress, uncompressed_tensors = [], []
     total_Ls_size = 0
