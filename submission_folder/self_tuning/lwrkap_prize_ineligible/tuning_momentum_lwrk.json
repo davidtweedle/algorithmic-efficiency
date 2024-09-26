@@ -1,6 +1,6 @@
 {
   "learning_rate": {
-      "feasible_points": [1e-2]
+      "min": 1e-3, "max": 5, "scaling": "log"
   },
   "one_minus_beta1": {
       "min": 5e-3, "max": 0.3, "scaling": "log"
@@ -24,6 +24,6 @@
     "feasible_points": [1e-3, 1e-2]
   },
   "matrix_approximation_rank": {
-    "feasible_points": [16, 32]
+    "feasible_points": [16]
    }
 }
