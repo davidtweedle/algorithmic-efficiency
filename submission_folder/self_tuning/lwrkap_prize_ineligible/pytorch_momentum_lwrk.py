@@ -16,7 +16,7 @@ from .low_rank_comm import LowRankApproximationState, lwrk_hook, simple_lwrk_hoo
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
 lrka_state = None
 
-
+logger = logging.getLogger('submission_runner.' + __name__)
 
 def init_optimizer_state(workload: spec.Workload,
                          model_params: spec.ParameterContainer,
@@ -36,7 +36,7 @@ def init_optimizer_state(workload: spec.Workload,
 
   if lrka_state is None:
     lrka_state = LowRankApproximationState(**lrka_state_args)
-    model_params.register_comm_hook(lrka_state, simple_lwrk_hook)
+    model_params.register_comm_hook(lrka_state, lwrk_hook)
     # register the communication hook which will
     # approximate the gradient on each gpu
     # then all reduce the results
@@ -155,7 +155,7 @@ def update_params(workload: spec.Workload,
               'loss': loss.item(),
               'grad_norm': grad_norm.item(),
           }, global_step)
-    logging.info('%d) loss = %0.3f, grad_norm = %0.3f',
+    logger.info('%d) loss = %0.3f, grad_norm = %0.3f',
                  global_step,
                  loss.item(),
                  grad_norm.item())

@@ -7,7 +7,7 @@ import torch.distributed as dist
 
 from torch.distributed.algorithms.ddp_comm_hooks import default_hooks as default
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('submission_runner.' + __name__)
 
 class LowRankApproximationState:
     """ A class to store all the state information for
@@ -71,7 +71,7 @@ def svd_approximator(grad, upper_bound_rank, svd_rank, device, n_gpus):
             V = V[:, :rank]
             reshaped_grad = (U * S) @ V.T
         except torch._C._LinAlgError as err:
-            logging.info(f'SVD approximator threw error {err}')
+            logger.info(f'SVD approximator threw error {err}')
     grad = reshaped_grad.reshape(*oldshape)
     grad.div_(n_gpus)
     return grad
@@ -91,7 +91,7 @@ def normalize_sv_approximator(grad, rank, device, n_gpus):
                     )
             reshaped_grad = U @ V.T
         except torch._C._LinAlgError as err:
-            logging.info(f'SVD approximator threw error {err}')
+            logger.info(f'SVD approximator threw error {err}')
     grad = reshaped_grad.reshape(*oldshape)
     grad.div_(n_gpus)
     return grad
