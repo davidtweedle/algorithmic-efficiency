@@ -301,6 +301,10 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
 def simple_lwrk_hook(state: LowRankApproximationState, bucket):
     input_tensor = bucket.buffer()
+    state.cur_grad_norm += torch.norm(input_tensor)
+    if bucket.is_last():
+        logging.info(f"Current grad norm is: {state.cur_grad_norm}")
+        state.cur_grad_norm = 0
     dtype = input_tensor.dtype
     device = input_tensor.device
     n_gpus = state.n_gpus

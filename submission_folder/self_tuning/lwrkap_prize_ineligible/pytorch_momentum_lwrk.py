@@ -34,7 +34,7 @@ def init_optimizer_state(workload: spec.Workload,
 
   if lrka_state is None:
     lrka_state = LowRankApproximationState(**lrka_state_args)
-    model_params.register_comm_hook(lrka_state, lwrk_hook)
+    model_params.register_comm_hook(lrka_state, simple_lwrk_hook)
     # register the communication hook which will
     # approximate the gradient on each gpu
     # then all reduce the results
