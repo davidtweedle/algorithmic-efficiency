@@ -18,7 +18,8 @@ class LowRankApproximationState:
             "upper_bound_rank",
             "batch_tensors_with_same_shape",
             "eps",
-            "global_step"
+            "global_step",
+            "cur_grad_norm"
             ]
 
     def __init__(
@@ -36,6 +37,7 @@ class LowRankApproximationState:
         self.batch_tensors_with_same_shape = batch_tensors_with_same_shape
         self.eps = eps
         self.global_step = global_step
+        self.cur_grad_norm = 0
 
     def __getstate__(self):
         return {
@@ -131,6 +133,11 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
     device = input_tensor.device
     dtype = input_tensor.dtype
+
+    state.cur_grad_norm += torch.norm(input_tensor)
+    if bucket.is_last():
+        logging.info(f"Step no. {state.global_step}, Current grad norm {state.cur_grad_norm}")
+        state.cur_grad_norm = 0
 
     bucket_index = bucket.index()
 
