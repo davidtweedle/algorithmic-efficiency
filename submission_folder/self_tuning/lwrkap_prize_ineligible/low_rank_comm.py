@@ -135,7 +135,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     bucket_index = bucket.index()
 
     tensors = bucket.gradients()
-    if state.global_step == 0 and bucket.is_last():
+    if state.global_step == 0:
         logging.info(f"Input tensor requires grad: {input_tensor.requires_grad}")
 
     tensors_to_compress, uncompressed_tensors = [], []
