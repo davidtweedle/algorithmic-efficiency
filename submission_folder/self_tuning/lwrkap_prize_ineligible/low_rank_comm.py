@@ -1,4 +1,4 @@
-import logging
+from absl import logging
 from collections import defaultdict
 from typing import Dict
 
@@ -6,8 +6,6 @@ import torch
 import torch.distributed as dist
 
 from torch.distributed.algorithms.ddp_comm_hooks import default_hooks as default
-
-logger = logging.getLogger('submission_runner.' + __name__)
 
 class LowRankApproximationState:
     """ A class to store all the state information for
@@ -71,7 +69,7 @@ def svd_approximator(grad, upper_bound_rank, svd_rank, device, n_gpus):
             V = V[:, :rank]
             reshaped_grad = (U * S) @ V.T
         except torch._C._LinAlgError as err:
-            logger.info(f'SVD approximator threw error {err}')
+            logging.info(f'SVD approximator threw error {err}')
     grad = reshaped_grad.reshape(*oldshape)
     grad.div_(n_gpus)
     return grad
@@ -91,7 +89,7 @@ def normalize_sv_approximator(grad, rank, device, n_gpus):
                     )
             reshaped_grad = U @ V.T
         except torch._C._LinAlgError as err:
-            logger.info(f'SVD approximator threw error {err}')
+            logging.info(f'SVD approximator threw error {err}')
     grad = reshaped_grad.reshape(*oldshape)
     grad.div_(n_gpus)
     return grad
@@ -138,7 +136,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
 
     tensors = bucket.gradients()
     if state.global_step == 0 and bucket.is_last():
-        logger.info(f"Input tensor requires grad: {input_tensor.requires_grad()}")
+        logging.info(f"Input tensor requires grad: {input_tensor.requires_grad()}")
 
     tensors_to_compress, uncompressed_tensors = [], []
     total_Ls_size = 0
@@ -158,7 +156,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         else:
             uncompressed_tensors.append(tensor)
             if state.global_step == 5 and device==torch.device("cuda:0"):
-                logger.info(f"Uncompressed tensor shape {tensor.shape}, bucket {bucket_index}")
+                logging.info(f"Uncompressed tensor shape {tensor.shape}, bucket {bucket_index}")
 
     uncompressed_tensors_memory = (
             torch.cat([tensor.view(-1) for tensor in uncompressed_tensors])
@@ -206,7 +204,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     for tensor in maybe_batched_tensors_to_compress():
         batch_size, m, n = tensor.shape
         if state.global_step == 5 and device == torch.device("cuda:0"):
-            logger.info(f"Device: {device}, dtype: {dtype}, Bucket number: {bucket_index}, Tensor shape {tensor.shape}")
+            logging.info(f"Device: {device}, dtype: {dtype}, Bucket number: {bucket_index}, Tensor shape {tensor.shape}")
         tensors_to_compress.append(tensor)
         ls.append(
                 l_memory[

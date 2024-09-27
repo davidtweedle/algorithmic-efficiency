@@ -16,8 +16,6 @@ from .low_rank_comm import LowRankApproximationState, lwrk_hook, simple_lwrk_hoo
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
 lrka_state = None
 
-logger = logging.getLogger('submission_runner.' + __name__)
-
 def init_optimizer_state(workload: spec.Workload,
                          model_params: spec.ParameterContainer,
                          model_state: spec.ModelAuxiliaryState,
@@ -155,7 +153,7 @@ def update_params(workload: spec.Workload,
               'loss': loss.item(),
               'grad_norm': grad_norm.item(),
           }, global_step)
-    logger.info('%d) loss = %0.3f, grad_norm = %0.3f',
+    logging.info('%d) loss = %0.3f, grad_norm = %0.3f',
                  global_step,
                  loss.item(),
                  grad_norm.item())
