@@ -135,8 +135,6 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     bucket_index = bucket.index()
 
     tensors = bucket.gradients()
-    if state.global_step == 0:
-        logging.info(f"Input tensor requires grad: {input_tensor.requires_grad}")
 
     tensors_to_compress, uncompressed_tensors = [], []
     total_Ls_size = 0
@@ -155,8 +153,6 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
             total_Xs_size += n * state.matrix_approximation_rank
         else:
             uncompressed_tensors.append(tensor)
-            if state.global_step == 5 and device==torch.device("cuda:0"):
-                logging.info(f"Uncompressed tensor shape {tensor.shape}, bucket {bucket_index}")
 
     uncompressed_tensors_memory = (
             torch.cat([tensor.view(-1) for tensor in uncompressed_tensors])
@@ -203,8 +199,6 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     x_idx = 0
     for tensor in maybe_batched_tensors_to_compress():
         batch_size, m, n = tensor.shape
-        if state.global_step == 5 and device == torch.device("cuda:0"):
-            logging.info(f"Device: {device}, dtype: {dtype}, Bucket number: {bucket_index}, Tensor shape {tensor.shape}")
         tensors_to_compress.append(tensor)
         ls.append(
                 l_memory[
