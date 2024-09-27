@@ -274,11 +274,8 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
             logging.info(f"Shape of l: {l.shape}, Shape of r: {r.shape}, Shape of tensor: {tensor.shape}")
             gathered_tensor = torch.matmul(l, r)
             logging.info(f"Gathered tensor shape: {gathered_tensor.shape}")
-            gathered_tensor.sum_(dim=0)
-            logging.info(f"Gathered tensor shape: {gathered_tensor.shape}")
-            gathered_tensor.sum_(dim=0)
-            logging.info(f"Gathered tensor shape: {gathered_tensor.shape}")
-            gathered_tensor.sum_(dim=0)
+            reduced_tensor = torch.sum_(gathered_tensor, dim=0)
+            logging.info(f"Reduced tensor shape: {reduced_tensor.shape}")
             gathered_tensor.div_(n_gpus)
             tensor.copy_(gathered_tensor)
 
