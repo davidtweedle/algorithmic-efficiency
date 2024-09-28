@@ -223,7 +223,9 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         x_idx += batch_size * n * rank
 
     for i, tensor in enumerate(tensors_to_compress):
-        Ys[i], Xs[i] = low_rank_sketch(tensor, state)
+        U, Vh = low_rank_sketch(tensor, state)
+        Ys[i].copy_(U)
+        Xs[i].copy_(Vh)
 
     allreduce_contiguous_uncompressed_tensors_fut = dist.all_reduce(
             uncompressed_tensors_memory, async_op=True
