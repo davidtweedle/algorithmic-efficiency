@@ -145,7 +145,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     for tensor in tensors:
         matrix = tensor.view(tensor.shape[0], -1)
         m, n = matrix.shape
-        rank = min(m, n, state.approximation_rank)
+        rank = min(m, n, state.matrix_approximation_rank)
         if min(m, n) > 1:
             tensors_to_compress.append(matrix)
             total_Ys_size += m * rank
