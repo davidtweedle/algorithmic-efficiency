@@ -134,30 +134,22 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     device = input_tensor.device
     dtype = input_tensor.dtype
 
-    state.cur_grad_norm += torch.norm(input_tensor)
-    if bucket.is_last():
-        logging.info(f"Step no. {state.global_step}, Current grad norm {state.cur_grad_norm}")
-        state.cur_grad_norm = 0
-
     bucket_index = bucket.index()
 
     tensors = bucket.gradients()
 
     tensors_to_compress, uncompressed_tensors = [], []
-    total_Ls_size = 0
-    total_Rs_size = 0
     total_Xs_size = 0
     total_Ys_size = 0
 
     for tensor in tensors:
         matrix = tensor.view(tensor.shape[0], -1)
         m, n = matrix.shape
-        if n > state.matrix_approximation_rank:
+        rank = min(m, n, state.approximation_rank)
+        if min(m, n) > 1:
             tensors_to_compress.append(matrix)
-            total_Ls_size += m * state.matrix_approximation_rank * n_gpus
-            total_Rs_size += n * state.matrix_approximation_rank * n_gpus
-            total_Ys_size += m * state.matrix_approximation_rank
-            total_Xs_size += n * state.matrix_approximation_rank
+            total_Ys_size += m * rank
+            total_Xs_size += n * rank
         else:
             uncompressed_tensors.append(tensor)
 
@@ -167,12 +159,16 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
             else torch.tensor([], device=device, dtype=dtype)
             )
 
-    l_memory = torch.empty(
-            total_Ls_size, device=device, dtype=dtype
-            )
-    r_memory = torch.empty(
-            total_Rs_size, device=device, dtype=dtype
-            )
+    l_memory = [
+            torch.empty(
+                total_Ys_size, device=device, dtype=dtype) 
+            for _ in range(n_gpus)
+            ]
+    r_memory = [
+            torch.empty(
+                total_Xs_size, device=device, dtype=dtype)
+            for _ in range(n_gpus)
+            ]
     X_memory = torch.empty(
             total_Xs_size, device=device, dtype=dtype
             )
@@ -200,37 +196,31 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     rs = []
     Ys = []
     Xs = []
-    l_idx = 0
-    r_idx = 0
     y_idx = 0
     x_idx = 0
     for tensor in maybe_batched_tensors_to_compress():
         batch_size, m, n = tensor.shape
+        rank = min(m, n, state.matrix_approximation_rank)
         tensors_to_compress.append(tensor)
-        ls.append(
-                l_memory[
-                    l_idx: l_idx + batch_size * m * state.matrix_approximation_rank * n_gpus
-                    ].view(n_gpus, batch_size, m, state.matrix_approximation_rank)
+        ls.append(list([l_memory[j][
+            y_idx: y_idx + batch_size * m * rank
+            ].view(batch_size, m, rank 
+                   ) for j in range(n_gpus)])
                 )
-        rs.append(
-                r_memory[
-                    r_idx: r_idx + batch_size * n * state.matrix_approximation_rank * n_gpus
-                    ].view(n_gpus, batch_size, state.matrix_approximation_rank, n)
+        rs.append(list([r_memory[j][
+            x_idx: x_idx + batch_size * n * rank
+            ].view(batch_size, rank, n
+                   ) for j in range(n_gpus)]))
+        Ys.append(Y_memory[
+            y_idx: y_idx + batch_size * m * rank
+            ].view(batch_size, m, rank)
+                  )
+        Xs.append(X_memory[
+            x_idx: x_idx + batch_size * n * rank
+            ].view(batch_size, rank, n)
                 )
-        Ys.append(
-                Y_memory[
-                    y_idx: y_idx + batch_size * m * state.matrix_approximation_rank
-                    ].view(batch_size, m, state.matrix_approximation_rank)
-                )
-        Xs.append(
-                X_memory[
-                    x_idx: x_idx + batch_size * n * state.matrix_approximation_rank
-                    ].view(batch_size, state.matrix_approximation_rank, n)
-                )
-        l_idx += batch_size * m * state.matrix_approximation_rank * n_gpus
-        r_idx += batch_size * n * state.matrix_approximation_rank * n_gpus
-        y_idx += batch_size * m * state.matrix_approximation_rank
-        x_idx += batch_size * n * state.matrix_approximation_rank
+        y_idx += batch_size * m * rank
+        x_idx += batch_size * n * rank
 
     for i, tensor in enumerate(tensors_to_compress):
         Ys[i], Xs[i] = low_rank_sketch(tensor, state)
@@ -253,7 +243,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         return (
                 torch.futures.wait_all(
                     [
-                        dist.all_gather_into_tensor(
+                        dist.all_gather(
                             l_memory,
                             Y_memory,
                             async_op=True
@@ -271,11 +261,12 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         fut_list = fut.value()
         l_memory = fut_list[0]
         r_memory = fut_list[1]
-        for l, r, tensor in zip(ls, rs, tensors_to_compress):
-            gathered_tensor = torch.matmul(l, r)
-            reduced_tensor = torch.sum(gathered_tensor, dim=0)
-            reduced_tensor.div_(n_gpus)
-            tensor.copy_(reduced_tensor)
+        for ls, rs, tensor in zip(ls, rs, tensors_to_compress):
+            gathered_tensor = torch.matmul(
+                    torch.cat(ls, dim=-1), torch.cat(rs, dim=-2)
+                    )
+            gathered_tensor.div_(n_gpus)
+            tensor.copy_(gathered_tensor)
 
         if state.batch_tensors_with_same_shape:
             for tensor in tensors_to_compress:
