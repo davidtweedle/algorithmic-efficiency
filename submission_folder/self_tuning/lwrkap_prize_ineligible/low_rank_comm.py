@@ -261,9 +261,9 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         fut_list = fut.value()
         l_memory = fut_list[0]
         r_memory = fut_list[1]
-        for ls, rs, tensor in zip(ls, rs, tensors_to_compress):
+        for l, r, tensor in zip(ls, rs, tensors_to_compress):
             gathered_tensor = torch.matmul(
-                    torch.cat(ls, dim=-1), torch.cat(rs, dim=-2)
+                    torch.cat(l, dim=-1), torch.cat(r, dim=-2)
                     )
             gathered_tensor.div_(n_gpus)
             tensor.copy_(gathered_tensor)
