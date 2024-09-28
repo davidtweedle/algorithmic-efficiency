@@ -248,7 +248,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
                             Y_memory,
                             async_op=True
                             ).get_future(),
-                        dist.all_gather_into_tensor(
+                        dist.all_gather(
                             r_memory,
                             X_memory,
                             async_op=True
