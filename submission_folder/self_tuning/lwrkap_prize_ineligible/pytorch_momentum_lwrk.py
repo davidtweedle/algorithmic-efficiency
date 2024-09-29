@@ -34,13 +34,15 @@ def init_optimizer_state(workload: spec.Workload,
 
   if lrka_state is None:
     lrka_state = LowRankApproximationState(**lrka_state_args)
-    model_params.register_comm_hook(lrka_state, lwrk_hook)
+    lrka_state.handle = model_params.register_comm_hook(lrka_state, lwrk_hook)
     # register the communication hook which will
     # approximate the gradient on each gpu
     # then all reduce the results
     # cannot change hook between svd and low rank on same run
   else:
+    lrka_state.handle.remove()
     lrka_state.__setstate__(lrka_state_args)
+    lrka_state.handle = model_params.register_comm_hook(lrka_state, lwrk_hook)
     # if this has been run using num_tuning_trials > 1
     # then we will need to re use the previous communication hook
 
