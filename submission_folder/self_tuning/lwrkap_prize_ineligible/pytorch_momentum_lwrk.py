@@ -14,7 +14,6 @@ from algorithmic_efficiency.pytorch_utils import pytorch_setup
 from .low_rank_comm import LowRankApproximationState, lwrk_hook, simple_lwrk_hook
 
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
-lrka_state = None
 
 def init_optimizer_state(workload: spec.Workload,
                          model_params: spec.ParameterContainer,
@@ -24,7 +23,6 @@ def init_optimizer_state(workload: spec.Workload,
   """Creates a Nesterov optimizer and a learning rate schedule."""
   del model_state
   del rng
-  global lrka_state
   lrka_state_args = {
           'global_step': 0,
           'matrix_approximation_rank': hyperparameters.matrix_approximation_rank,
@@ -32,19 +30,8 @@ def init_optimizer_state(workload: spec.Workload,
           'batch_tensors_with_same_shape': True
           }
 
-  if lrka_state is None:
-    lrka_state = LowRankApproximationState(**lrka_state_args)
-    lrka_state.handle = model_params.register_comm_hook(lrka_state, lwrk_hook)
-    # register the communication hook which will
-    # approximate the gradient on each gpu
-    # then all reduce the results
-    # cannot change hook between svd and low rank on same run
-  else:
-    lrka_state.handle.remove()
-    lrka_state.__setstate__(lrka_state_args)
-    lrka_state.handle = model_params.register_comm_hook(lrka_state, lwrk_hook)
-    # if this has been run using num_tuning_trials > 1
-    # then we will need to re use the previous communication hook
+  lrka_state = LowRankApproximationState(**lrka_state_args)
+  model_params.register_comm_hook(lrka_state, lwrk_hook)
 
   # Create optimizer.
   optimizer_state = {
