@@ -125,7 +125,7 @@ def sketch_approximator(grad, low_rank, device, n_gpus):
 def low_rank_sketch(grad, state: LowRankApproximationState):
     m, n = grad.shape[-2:]
     rank = min(state.matrix_approximation_rank, m, n)
-    U, _, V = torch.svd_lowrank(grad, niter=2, q=rank)
+    U, _, V = torch.svd_lowrank(grad, niter=0, q=rank)
     return U, V.transpose(-1, -2)
 
 
