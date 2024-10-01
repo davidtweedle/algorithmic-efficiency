@@ -8,7 +8,7 @@
         "warmup_factor": 0.05,
         "decay_steps_factor": 0.900777,
         "end_factor": 1e-3,
-        "matrix_approximation_rank": 8
+        "matrix_approximation_rank": 16
     },
     {
         "dropout_rate": 0.0,
@@ -19,6 +19,6 @@
         "warmup_factor": 0.05,
         "decay_steps_factor": 0.900777,
         "end_factor": 1e-3,
-        "matrix_approximation_rank": 8
+        "matrix_approximation_rank": 16
     }
 ]
