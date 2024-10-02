@@ -37,12 +37,14 @@ def init_optimizer_state(workload: spec.Workload,
     lrka_state = LowRankApproximationState(**lrka_state_args)
     model_params.register_comm_hook(lrka_state, lwrk_hook)
   else:
+    lrka_state.__setstate__(lrka_state_args)
     try:
-      lrka_state.__setstate__(lrka_state_args)
       model_params.register_comm_hook(lrka_state, lwrk_hook)
     except RuntimeError as err:
-      print(err.args)
-      raise
+      if err.args[0] == 'register_comm_hook or register_builtin_comm_hook can only be called once.':
+        pass
+      else:
+        raise
 
   # Create optimizer.
   optimizer_state = {
