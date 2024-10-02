@@ -20,7 +20,7 @@ class LowRankApproximationState:
             "eps",
             "global_step",
             "cur_grad_norm",
-            "handle"
+            "num_iter_svd"
             ]
 
     def __init__(
@@ -31,7 +31,7 @@ class LowRankApproximationState:
             upper_bound_rank=32,
             batch_tensors_with_same_shape: bool = True,
             global_step=0,
-            handle=None
+            num_iter_svd=0
             ):
         self.n_gpus = n_gpus
         self.matrix_approximation_rank = matrix_approximation_rank
@@ -40,7 +40,7 @@ class LowRankApproximationState:
         self.eps = eps
         self.global_step = global_step
         self.cur_grad_norm = 0
-        self.handle = None
+        self.num_iter_svd = num_iter_svd
 
     def __getstate__(self):
         return {
@@ -125,7 +125,7 @@ def sketch_approximator(grad, low_rank, device, n_gpus):
 def low_rank_sketch(grad, state: LowRankApproximationState):
     m, n = grad.shape[-2:]
     rank = min(state.matrix_approximation_rank, m, n)
-    U, _, V = torch.svd_lowrank(grad, niter=0, q=rank)
+    U, _, V = torch.svd_lowrank(grad, niter=state.num_iter_svd, q=rank)
     return U, V.transpose(-1, -2)
 
 
