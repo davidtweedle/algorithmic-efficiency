@@ -25,5 +25,8 @@
   },
   "matrix_approximation_rank": {
     "feasible_points": [16]
-   }
+  },
+  "num_iter_svd": {
+    "feasible_points": [0]
+  } 
 }
