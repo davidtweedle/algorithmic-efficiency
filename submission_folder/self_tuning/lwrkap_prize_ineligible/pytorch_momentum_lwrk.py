@@ -8,6 +8,8 @@ import torch
 import torch.distributed.nn as dist_nn
 from torch.optim.lr_scheduler import LambdaLR
 
+from torch.profiler import profile, schedule, tensorboard_trace_handler
+
 from algorithmic_efficiency import spec
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
@@ -31,7 +33,20 @@ def init_optimizer_state(workload: spec.Workload,
           'matrix_approximation_rank': hyperparameters.matrix_approximation_rank,
           'n_gpus': N_GPUS,
           'batch_tensors_with_same_shape': True,
-          'num_iter_svd': hyperparameters.num_iter_svd
+          'num_iter_svd': hyperparameters.num_iter_svd,
+          'profile': profile(
+              activities=[torch.profiler.ProfilerActivityCPU,
+                          torch.profiler.ProfilerActivityCUDA],
+              schedule=schedule(
+                  wait=97,
+                  warmup=1,
+                  active=2),
+              on_trace_ready=tensorboard_trace_handler('./log'),
+              profile_memory=True,
+              record_shapes=True,
+              with_stack=True,
+              with_flops=True
+              )
           }
   if lrka_state is None:
     lrka_state = LowRankApproximationState(**lrka_state_args)
@@ -135,7 +150,9 @@ def update_params(workload: spec.Workload,
   n_valid_examples = loss_dict['n_valid_examples']
   loss = summed_loss / n_valid_examples
 
-  loss.backward()
+  with lrka_state.profile as p:
+    loss.backward()
+    p.step()
 
   if grad_clip is not None:
     torch.nn.utils.clip_grad_norm_(
