@@ -20,7 +20,8 @@ class LowRankApproximationState:
             "eps",
             "global_step",
             "cur_grad_norm",
-            "num_iter_svd"
+            "num_iter_svd",
+            "profile"
             ]
 
     def __init__(
@@ -31,7 +32,8 @@ class LowRankApproximationState:
             upper_bound_rank=32,
             batch_tensors_with_same_shape: bool = True,
             global_step=0,
-            num_iter_svd=0
+            num_iter_svd=0,
+            profile=None
             ):
         self.n_gpus = n_gpus
         self.matrix_approximation_rank = matrix_approximation_rank
@@ -41,6 +43,7 @@ class LowRankApproximationState:
         self.global_step = global_step
         self.cur_grad_norm = 0
         self.num_iter_svd = num_iter_svd
+        self.profile = profile
 
     def __getstate__(self):
         return {
