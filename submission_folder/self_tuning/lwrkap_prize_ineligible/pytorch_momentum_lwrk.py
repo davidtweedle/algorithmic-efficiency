@@ -44,7 +44,6 @@ def init_optimizer_state(workload: spec.Workload,
               on_trace_ready=tensorboard_trace_handler('./log'),
               profile_memory=True,
               record_shapes=True,
-              with_stack=True,
               with_flops=True
               )
           }
