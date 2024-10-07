@@ -35,8 +35,8 @@ def init_optimizer_state(workload: spec.Workload,
           'batch_tensors_with_same_shape': True,
           'num_iter_svd': hyperparameters.num_iter_svd,
           'profile': profile(
-              activities=[torch.profiler.ProfilerActivityCPU,
-                          torch.profiler.ProfilerActivityCUDA],
+              activities=[torch.profiler.ProfilerActivity.CPU,
+                          torch.profiler.ProfilerActivity.CUDA],
               schedule=schedule(
                   wait=97,
                   warmup=1,
