@@ -51,6 +51,7 @@ def init_optimizer_state(workload: spec.Workload,
     lrka_state = LowRankApproximationState(**lrka_state_args)
     model_params.register_comm_hook(lrka_state, lwrk_hook)
   else:
+    lrka_state.profile.stop()
     lrka_state.__setstate__(lrka_state_args)
     try:
       model_params.register_comm_hook(lrka_state, lwrk_hook)
@@ -60,6 +61,7 @@ def init_optimizer_state(workload: spec.Workload,
       else:
         raise
 
+  lrka_state.profile.start()
   # Create optimizer.
   optimizer_state = {
       'optimizer':
