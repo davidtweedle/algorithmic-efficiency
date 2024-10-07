@@ -40,7 +40,9 @@ def init_optimizer_state(workload: spec.Workload,
               schedule=schedule(
                   wait=97,
                   warmup=1,
-                  active=2),
+                  active=3,
+                  repeat=0
+                  ),
               on_trace_ready=tensorboard_trace_handler('./log'),
               profile_memory=True,
               record_shapes=True,
@@ -51,7 +53,6 @@ def init_optimizer_state(workload: spec.Workload,
     lrka_state = LowRankApproximationState(**lrka_state_args)
     model_params.register_comm_hook(lrka_state, lwrk_hook)
   else:
-    lrka_state.profile.stop()
     lrka_state.__setstate__(lrka_state_args)
     try:
       model_params.register_comm_hook(lrka_state, lwrk_hook)
@@ -154,6 +155,8 @@ def update_params(workload: spec.Workload,
   with lrka_state.profile as p:
     loss.backward()
     p.step()
+  if global_step == 150:
+    lrka_state.profile.stop()
 
   if grad_clip is not None:
     torch.nn.utils.clip_grad_norm_(
