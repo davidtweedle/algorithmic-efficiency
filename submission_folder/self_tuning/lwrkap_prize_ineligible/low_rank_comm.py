@@ -20,9 +20,7 @@ class LowRankApproximationState:
             "eps",
             "global_step",
             "cur_grad_norm",
-            "num_iter_svd",
-            "break_steps",
-            "break_idx"
+            "num_iter_svd"
             ]
 
     def __init__(
@@ -34,7 +32,6 @@ class LowRankApproximationState:
             batch_tensors_with_same_shape: bool = True,
             global_step=0,
             num_iter_svd=0,
-            break_steps=[15000, 30000]
             ):
         self.n_gpus = n_gpus
         self.matrix_approximation_rank = matrix_approximation_rank
@@ -44,8 +41,6 @@ class LowRankApproximationState:
         self.global_step = global_step
         self.cur_grad_norm = 0
         self.num_iter_svd = num_iter_svd
-        self.break_steps = break_steps
-        self.break_idx = 0
 
     def __getstate__(self):
         return {
@@ -60,8 +55,6 @@ class LowRankApproximationState:
     def maybe_increase_iter(self, bucket):
         if bucket.is_last():
             self.global_step += 1
-            if len(self.break_steps) > self.break_idx and self.global_step == self.break_steps[self.break_idx]:
-                self.break_idx += 1
 
 def svd_approximator(grad, upper_bound_rank, svd_rank, device, n_gpus):
     oldshape = grad.shape
@@ -130,7 +123,7 @@ def sketch_approximator(grad, low_rank, device, n_gpus):
 
 def low_rank_sketch(grad, state: LowRankApproximationState):
     m, n = grad.shape[-2:]
-    rank = min(state.matrix_approximation_rank * 2 ** state.break_idx, m, n)
+    rank = min(state.matrix_approximation_rank, m, n)
     U, _, V = torch.svd_lowrank(grad, niter=state.num_iter_svd, q=rank)
     return U, V.transpose(-1, -2)
 
@@ -154,11 +147,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     for tensor in tensors:
         matrix = tensor.view(tensor.shape[0], -1)
         m, n = matrix.shape
-        rank = min(
-                m,
-                n,
-                state.matrix_approximation_rank * (2 ** state.break_idx)
-                )
+        rank = min(m, n, state.matrix_approximation_rank)
         if min(m, n) > 1:
             tensors_to_compress.append(matrix)
             total_Ys_size += m * rank
@@ -213,10 +202,7 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
     x_idx = 0
     for tensor in maybe_batched_tensors_to_compress():
         batch_size, m, n = tensor.shape
-        rank = min(m, n,
-                   state.matrix_approximation_rank * (
-                       2 ** state.break_idx)
-                   )
+        rank = min(m, n, state.matrix_approximation_rank)
         tensors_to_compress.append(tensor)
         ls.append(list([l_memory[j][
             y_idx: y_idx + batch_size * m * rank

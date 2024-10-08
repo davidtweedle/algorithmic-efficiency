@@ -31,8 +31,7 @@ def init_optimizer_state(workload: spec.Workload,
           'matrix_approximation_rank': hyperparameters.matrix_approximation_rank,
           'n_gpus': N_GPUS,
           'batch_tensors_with_same_shape': True,
-          'num_iter_svd': hyperparameters.num_iter_svd,
-          'break_steps': [20000, 40000, 60000, 80000, 10000]
+          'num_iter_svd': hyperparameters.num_iter_svd
           }
   if lrka_state is None:
     lrka_state = LowRankApproximationState(**lrka_state_args)
