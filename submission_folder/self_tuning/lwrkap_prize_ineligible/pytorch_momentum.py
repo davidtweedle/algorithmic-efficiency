@@ -110,10 +110,6 @@ def update_params(workload: spec.Workload,
       label_smoothing=label_smoothing)
   summed_loss = loss_dict['summed']
   n_valid_examples = loss_dict['n_valid_examples']
-  if USE_PYTORCH_DDP:
-    # Use dist_nn.all_reduce to ensure correct loss and gradient scaling.
-    summed_loss = dist_nn.all_reduce(summed_loss)
-    n_valid_examples = dist_nn.all_reduce(n_valid_examples)
   loss = summed_loss / n_valid_examples
 
   loss.backward()
