@@ -225,6 +225,8 @@ def lwrk_hook(state: LowRankApproximationState, bucket):
         x_idx += batch_size * n * rank
 
     for i, tensor in enumerate(tensors_to_compress):
+        if state.global_step == 5 and device == torch.device('cuda:0'):
+            logging.info(f"Compressing tensor of shape {tensor.shape}")
         U, Vh = low_rank_sketch(tensor, state)
         Ys[i].copy_(U)
         Xs[i].copy_(Vh)
