@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import LambdaLR
 from algorithmic_efficiency import spec
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
-from .low_rank_comm import LowRankApproximationState, lwrk_hook, simple_lwrk_hook
+from lowrankapproximation.pytorch import LowRankApproximationState, lwrk_hook, simple_lwrk_hook
 
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
 lrka_state = None
