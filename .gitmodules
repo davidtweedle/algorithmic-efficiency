@@ -1,0 +1,3 @@
+[submodule "submission_folder/external_tuning/lwrkap_prize_ineligible/lowrankapproximation"]
+	path = submission_folder/external_tuning/lwrkap_prize_ineligible/lowrankapproximation
+	url = git@github.com:davidtweedle/lowrankapproximation.git
