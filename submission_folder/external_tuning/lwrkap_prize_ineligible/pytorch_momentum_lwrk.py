@@ -1,4 +1,8 @@
-"""Submission file for a SGD with HeavyBall momentum optimizer in PyTorch."""
+"""
+Submission file for a Pytorch optimizer with low rank approximation of gradients
+SGD with HeavyBall momentum code originally from: 
+github.com/mlcommons/algorithmic-efficiency
+"""
 
 from typing import Callable, Dict, Iterator, List, Tuple
 
@@ -11,17 +15,28 @@ from torch.optim.lr_scheduler import LambdaLR
 from algorithmic_efficiency import spec
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
-from lowrankapproximation.pytorch import LowRankApproximationState, lwrk_hook, simple_lwrk_hook
+from .lowrankapproximation.pytorch import \
+        LowRankApproximationState, lwrk_hook, simple_lwrk_hook
 
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
 lrka_state = None
+# need to keep global lrka_state
+# The reason is that the implementation of cifar
+# resets the parameters on each tuning run
+# instead of deleting the model on each run
+# which seems to be the case for all other implementations
+# of the models
+
 
 def init_optimizer_state(workload: spec.Workload,
                          model_params: spec.ParameterContainer,
                          model_state: spec.ModelAuxiliaryState,
                          hyperparameters: spec.Hyperparameters,
                          rng: spec.RandomState) -> spec.OptimizerState:
-  """Creates a Nesterov optimizer and a learning rate schedule."""
+  """
+  Creates a Nesterov optimizer and a learning rate schedule.
+  Attaches a low rank communication hook to the DDP model. 
+  """
   del model_state
   del rng
 
@@ -34,9 +49,15 @@ def init_optimizer_state(workload: spec.Workload,
           'num_iter_svd': hyperparameters.num_iter_svd
           }
   if lrka_state is None:
+    # if this is the first run, initialize the lrka state and attach
+    # it to the DDP model
     lrka_state = LowRankApproximationState(**lrka_state_args)
     model_params.register_comm_hook(lrka_state, lwrk_hook)
   else:
+    # this is not the first run
+    # we must try to attach the comm hook to the model
+    # if it fails it is because a hook is already attached
+    # which happens when tuning the cifar model
     lrka_state.__setstate__(lrka_state_args)
     try:
       model_params.register_comm_hook(lrka_state, lwrk_hook)
@@ -135,6 +156,7 @@ def update_params(workload: spec.Workload,
   n_valid_examples = loss_dict['n_valid_examples']
   loss = summed_loss / n_valid_examples
 
+  # all reducing of gradients is handled in communication hook
   loss.backward()
 
   if grad_clip is not None:
