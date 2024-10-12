@@ -2,7 +2,7 @@
     {
         "dropout_rate": 0.0,
         "label_smoothing": 0.1,
-        "learning_rate": 0.1,
+        "learning_rate": 0.05,
         "one_minus_beta1": 0.072524,
         "weight_decay": 0,
         "warmup_factor": 0.05,
