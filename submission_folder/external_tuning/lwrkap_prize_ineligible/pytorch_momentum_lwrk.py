@@ -45,7 +45,7 @@ def init_optimizer_state(workload: spec.Workload,
           'global_step': 0,
           'matrix_approximation_rank': hyperparameters.matrix_approximation_rank,
           'n_gpus': N_GPUS,
-          'batch_tensors_with_same_shape': True,
+          'batch_tensors_with_same_shape': False,
           'num_iter_svd': hyperparameters.num_iter_svd
           }
   if lrka_state is None:
