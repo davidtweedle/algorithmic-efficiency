@@ -60,7 +60,7 @@ def init_optimizer_state(workload: spec.Workload,
     # which happens when tuning the cifar model
     lrka_state.__setstate__(lrka_state_args)
     try:
-      model_params.register_comm_hook(lrka_state, lwrk_hook)
+      model_params.register_comm_hook(lrka_state, simple_lwrk_hook)
     except RuntimeError as err:
       if err.args[0] == 'register_comm_hook or register_builtin_comm_hook can only be called once.':
         pass
