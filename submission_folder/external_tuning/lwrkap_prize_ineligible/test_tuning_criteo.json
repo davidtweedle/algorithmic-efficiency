@@ -8,7 +8,7 @@
         "warmup_factor": 0.05,
         "decay_steps_factor": 0.900777,
         "end_factor": 0.1,
-        "matrix_approximation_rank": 32,
+        "matrix_approximation_rank": 64,
         "num_iter_svd": 0
     }
 ]
