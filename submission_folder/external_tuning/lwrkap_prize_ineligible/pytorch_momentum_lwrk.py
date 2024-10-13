@@ -52,7 +52,7 @@ def init_optimizer_state(workload: spec.Workload,
     # if this is the first run, initialize the lrka state and attach
     # it to the DDP model
     lrka_state = LowRankApproximationState(**lrka_state_args)
-    model_params.register_comm_hook(lrka_state, lwrk_hook)
+    model_params.register_comm_hook(lrka_state, simple_lwrk_hook)
   else:
     # this is not the first run
     # we must try to attach the comm hook to the model
