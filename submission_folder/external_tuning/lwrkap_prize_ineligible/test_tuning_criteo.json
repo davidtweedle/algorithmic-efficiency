@@ -3,12 +3,12 @@
         "dropout_rate": 0.0,
         "label_smoothing": 0.1,
         "learning_rate": 0.005,
-        "one_minus_beta1": 0.172524,
+        "one_minus_beta1": 0.072524,
         "weight_decay": 0,
         "warmup_factor": 0.05,
         "decay_steps_factor": 0.900777,
         "end_factor": 0.01,
-        "matrix_approximation_rank": 64,
+        "matrix_approximation_rank": 128,
         "num_iter_svd": 0
     }
 ]
