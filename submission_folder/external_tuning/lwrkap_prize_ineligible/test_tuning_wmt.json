@@ -2,13 +2,13 @@
     {
         "dropout_rate": 0.0,
         "label_smoothing": 0.1,
-        "learning_rate": 0.05,
-        "one_minus_beta1": 0.072524,
-        "weight_decay": 0,
+        "learning_rate": 0.1,
+        "one_minus_beta1": 0.172524,
+        "weight_decay": 5e-6,
         "warmup_factor": 0.05,
         "decay_steps_factor": 0.900777,
-        "end_factor": 0.1,
-        "matrix_approximation_rank": 128,
+        "end_factor": 1,
+        "matrix_approximation_rank": 64,
         "num_iter_svd": 0
     }
 ]
