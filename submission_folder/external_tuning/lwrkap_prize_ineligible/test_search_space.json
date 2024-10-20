@@ -1,0 +1,32 @@
+{
+        "dropout_rate": {
+            "feasible_points": [0.0]
+        },
+        "label_smoothing": {
+            "feasible_points": [0.0]
+        },
+        "learning_rate": {
+            "min": 1e-4, "max": 1e-1, "scaling": "log"
+        },
+        "one_minus_beta1": {
+            "min": 1e-2, "max": 0.15, "scaling": "log"
+        },
+        "weight_decay": {
+            "feasible_points": [0.0]
+        },
+        "warmup_factor": {
+            "feasible_points": [0.05, 0.01]
+        },
+        "decay_steps_factor": {
+            "feasible_points": [0.9]
+        },
+        "end_factor": {
+            "feasible_points": [0.1, 0.01]
+        },
+        "matrix_approximation_rank": {
+            "feasible_points": [64]
+        },
+        "num_iter_svd": {
+            "feasible_points": [0]
+        }
+}
