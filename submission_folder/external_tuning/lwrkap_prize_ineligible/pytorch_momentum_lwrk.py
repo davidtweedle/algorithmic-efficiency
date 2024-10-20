@@ -157,7 +157,11 @@ def update_params(workload: spec.Workload,
   loss = summed_loss / n_valid_examples
 
   # all reducing of gradients is handled in communication hook
-  loss.backward()
+  try:
+    loss.backward()
+  except TrainingCompleteError:
+    raise TrainingCompleteError
+
 
   if grad_clip is not None:
     torch.nn.utils.clip_grad_norm_(
