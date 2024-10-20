@@ -13,6 +13,7 @@ import torch.distributed.nn as dist_nn
 from torch.optim.lr_scheduler import LambdaLR
 
 from algorithmic_efficiency import spec
+from algorithmic_efficiency.spec import TrainingCompleteError
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
 from .lowrankapproximation.pytorch.low_rank_comm import \
