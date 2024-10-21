@@ -160,7 +160,7 @@ def update_params(workload: spec.Workload,
 
   # all reducing of gradients is handled in communication hook
   loss.backward()
-  num_errs = dist_nn.all_reduce(lrka_state.num_errs)
+  num_errs = dist_nn.all_reduce(torch.tensor(lrka_state.num_errs))
   if num_errs > N_GPUS * 10:
     raise TrainingCompleteError
 
