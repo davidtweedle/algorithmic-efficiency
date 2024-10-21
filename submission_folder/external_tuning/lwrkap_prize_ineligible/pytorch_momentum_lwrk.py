@@ -47,7 +47,8 @@ def init_optimizer_state(workload: spec.Workload,
           'matrix_approximation_rank': hyperparameters.matrix_approximation_rank,
           'n_gpus': N_GPUS,
           'batch_tensors_with_same_shape': False,
-          'num_iter_svd': hyperparameters.num_iter_svd
+          'num_iter_svd': hyperparameters.num_iter_svd,
+          'num_errs': 0
           }
   if lrka_state is None:
     # if this is the first run, initialize the lrka state and attach
@@ -158,9 +159,9 @@ def update_params(workload: spec.Workload,
   loss = summed_loss / n_valid_examples
 
   # all reducing of gradients is handled in communication hook
-  try:
-    loss.backward()
-  except TrainingCompleteError:
+  loss.backward()
+  num_errs = dist.all_reduce(lrka_state.num_errs)
+  if num_errs > N_GPUS * 10:
     raise TrainingCompleteError
 
 
