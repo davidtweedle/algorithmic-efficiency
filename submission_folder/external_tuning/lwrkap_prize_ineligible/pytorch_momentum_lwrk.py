@@ -160,7 +160,7 @@ def update_params(workload: spec.Workload,
 
   # all reducing of gradients is handled in communication hook
   loss.backward()
-  if num_errs > 10 * N_GPUS:
+  if lrka_state.num_errs > 10 * N_GPUS:
     raise TrainingCompleteError
 
 
