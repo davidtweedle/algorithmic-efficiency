@@ -156,11 +156,13 @@ def update_params(workload: spec.Workload,
       label_smoothing=label_smoothing)
   summed_loss = loss_dict['summed']
   n_valid_examples = loss_dict['n_valid_examples']
+  lrka_state.n_valid_examples = [
+          torch.tensor(0, device=torch.device('cuda:' + str(RANK))) for _ in range(N_GPUS)]
   torch.distributed.all_gather(lrka_state.n_valid_examples, n_valid_examples)
   # pass n_valid_examples per rank into all reduce
   # hook
   n_valid_examples = sum(lrka_state.n_valid_examples)
-  loss = summed_loss / n_valid_examples
+  loss = summed_loss 
 
   # all reducing of gradients is handled in communication hook
   loss.backward()
@@ -170,6 +172,7 @@ def update_params(workload: spec.Workload,
 
   with torch.no_grad():
     torch.distributed.all_reduce(loss)
+    loss.div_(n_valid_examples)
 
   if grad_clip is not None:
     torch.nn.utils.clip_grad_norm_(
