@@ -159,7 +159,9 @@ def update_params(workload: spec.Workload,
   n_valid_examples.requires_grad = False
   torch.distributed.all_reduce(n_valid_examples)
   loss = summed_loss / n_valid_examples
-  # now don't divide by n_gpus in all reduce code
+  # still must divide by n_gpus after all_reduce
+  # because writing grad = uv^T
+  # will normalize
 
   # all reducing of gradients is handled in communication hook
   loss.backward()
