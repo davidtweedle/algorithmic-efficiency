@@ -156,7 +156,7 @@ def update_params(workload: spec.Workload,
       label_smoothing=label_smoothing)
   summed_loss = loss_dict['summed']
   n_valid_examples = loss_dict['n_valid_examples']
-  dist_nn.all_reduce(n_valid_examples)
+  n_valid_examples = torch.distributed.all_reduce(n_valid_examples)
   loss = summed_loss / n_valid_examples
   # now don't divide by n_gpus in all reduce code
 
