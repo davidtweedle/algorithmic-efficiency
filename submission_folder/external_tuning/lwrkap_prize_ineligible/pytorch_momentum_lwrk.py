@@ -169,6 +169,8 @@ def update_params(workload: spec.Workload,
   if lrka_state.num_errs > 10 * N_GPUS:
     raise TrainingCompleteError
 
+  with torch.no_grad():
+    torch.distributed.all_reduce(loss)
 
   if grad_clip is not None:
     torch.nn.utils.clip_grad_norm_(
