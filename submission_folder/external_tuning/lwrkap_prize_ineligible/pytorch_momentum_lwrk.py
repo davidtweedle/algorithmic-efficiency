@@ -156,12 +156,11 @@ def update_params(workload: spec.Workload,
       label_smoothing=label_smoothing)
   summed_loss = loss_dict['summed']
   n_valid_examples = loss_dict['n_valid_examples']
-  n_valid_examples.requires_grad = False
-  torch.distributed.all_reduce(n_valid_examples)
+  torch.distrubted.all_gather(lrka_state.n_valid_examples, n_valid_examples)
+  # pass n_valid_examples per rank into all reduce
+  # hook
+  n_valid_examples = sum(lrka_state.n_valid_examples)
   loss = summed_loss / n_valid_examples
-  # still must divide by n_gpus after all_reduce
-  # because writing grad = uv^T
-  # will normalize
 
   # all reducing of gradients is handled in communication hook
   loss.backward()
