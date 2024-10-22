@@ -156,12 +156,14 @@ def update_params(workload: spec.Workload,
       label_smoothing=label_smoothing)
   summed_loss = loss_dict['summed']
   n_valid_examples = loss_dict['n_valid_examples']
+  n_valid_examples.requires_grad = False
   torch.distributed.all_reduce(n_valid_examples)
   loss = summed_loss / n_valid_examples
   # now don't divide by n_gpus in all reduce code
 
   # all reducing of gradients is handled in communication hook
   loss.backward()
+
   if lrka_state.num_errs > 10 * N_GPUS:
     raise TrainingCompleteError
 
