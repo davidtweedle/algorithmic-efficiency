@@ -6,16 +6,16 @@
             "feasible_points": [0.0]
         },
         "learning_rate": {
-            "min": 5e-3, "max": 0.05, "scaling": "log"
+            "min": 0.011, "max": 0.014, "scaling": "log"
         },
         "one_minus_beta1": {
-            "min": 1e-2, "max": 0.1, "scaling": "log"
+            "min": 0.014, "max": 0.017, "scaling": "log"
         },
         "weight_decay": {
             "feasible_points": [0.0]
         },
         "warmup_factor": {
-            "feasible_points": [0.05, 0.01]
+            "feasible_points": [0.01]
         },
         "decay_steps_factor": {
             "feasible_points": [0.9]
