@@ -15,6 +15,10 @@ import optax
 
 from algorithmic_efficiency import spec
 
+from jax.tree_util import tree_structure
+from absl import logging
+
+
 _GRAD_CLIP_EPS = 1e-6
 
 
@@ -128,7 +132,7 @@ def pmapped_train_step(workload,
   grad_fn = jax.value_and_grad(_loss_fn, has_aux=True)
   (summed_loss, (n_valid_examples, new_model_state)), grad = grad_fn(
       current_param_container)
-  print(grad)
+  logging.info(f"{tree_structure(grad)}") 
   # Get correct global mean loss and grad.
   (summed_loss, n_valid_examples, grad) = lax.psum(
       (summed_loss, n_valid_examples, grad), axis_name='batch')
