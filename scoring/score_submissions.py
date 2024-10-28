@@ -88,9 +88,15 @@ def get_summary_df(workload, workload_df, include_test_split=False):
   summary_df['time to best eval on val (s)'] = workload_df.apply(
       lambda x: x['accumulated_submission_time'][x['index best eval on val']],
       axis=1)
-  summary_df['time to target on val (s)'] = summary_df.apply(
-      lambda x: x['time to best eval on val (s)']
-      if x['val target reached'] else np.inf,
+  workload_df['val target reached'] = workload_df[validation_metric].apply(
+      lambda x: target_op(x, validation_target)).apply(np.any)
+  workload_df['index to target on val'] = workload_df.apply(
+      lambda x: np.argmax(target_op(x[validation_metric], validation_target))
+      if x['val target reached'] else np.nan,
+      axis=1)
+  summary_df['time to target on val (s)'] = workload_df.apply(
+      lambda x: x['accumulated_submission_time'][int(x[
+          'index to target on val'])] if x['val target reached'] else np.inf,
       axis=1)
 
   # test metrics
@@ -198,13 +204,14 @@ def main(_):
         results,
         time_col='score',
         min_tau=1.0,
-        max_tau=None,
+        max_tau=4.0,
         reference_submission_tag=None,
         num_points=100,
         scale='linear',
         verbosity=0,
         self_tuning_ruleset=FLAGS.self_tuning_ruleset,
-        strict=FLAGS.strict)
+        strict=FLAGS.strict,
+        output_dir=FLAGS.output_dir,)
     if not os.path.exists(FLAGS.output_dir):
       os.mkdir(FLAGS.output_dir)
     performance_profile.plot_performance_profiles(
