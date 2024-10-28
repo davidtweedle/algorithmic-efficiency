@@ -32,7 +32,7 @@ RUN mkdir -p experiment_runs/
 RUN echo "Setting up algorithmic_efficiency repo"
 ARG branch="main"
 ARG framework="both"
-ARG git_url=https://github.com/mlcommons/algorithmic-efficiency.git
+ARG git_url=https://github.com/davidtweedle/algorithmic-efficiency.git
 RUN git clone $git_url && cd /algorithmic-efficiency 
 RUN cd /algorithmic-efficiency && git checkout $branch
 
