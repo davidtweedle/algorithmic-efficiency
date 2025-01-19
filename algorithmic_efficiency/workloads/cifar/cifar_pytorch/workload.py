@@ -135,7 +135,9 @@ class CifarWorkload(BaseCifarWorkload):
     self._model.to(DEVICE)
     if N_GPUS > 1:
       if USE_PYTORCH_DDP:
-        self._model = DDP(self._model, device_ids=[RANK], output_device=RANK)
+        for module in self._model.modules():
+          fully_shard(module)
+        fully_shard(self._model)
       else:
         self._model = torch.nn.DataParallel(self._model)
     return self._model, None
