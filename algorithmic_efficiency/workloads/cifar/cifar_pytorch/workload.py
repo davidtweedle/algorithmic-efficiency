@@ -9,6 +9,7 @@ import torch
 import torch.distributed as dist
 import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.distributed._composable.fsdp import fully_shard
 from torchvision import transforms
 from torchvision.datasets import CIFAR10
 
