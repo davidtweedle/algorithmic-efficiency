@@ -163,7 +163,7 @@ flags.DEFINE_integer(
     'WARNING: Setting pytorch_eval_num_workers != 0, will result '
     'in incorrect evals currently, see issues/732.')
 FLAGS = flags.FLAGS
-USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
+USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS, MESH = pytorch_setup()
 
 
 def _get_time():
