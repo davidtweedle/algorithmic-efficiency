@@ -21,7 +21,7 @@ from algorithmic_efficiency.workloads.cifar.cifar_pytorch.models import \
     resnet18
 from algorithmic_efficiency.workloads.cifar.workload import BaseCifarWorkload
 
-USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_utils.pytorch_setup()
+USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS, MESH = pytorch_utils.pytorch_setup()
 
 
 class CifarWorkload(BaseCifarWorkload):
