@@ -21,7 +21,7 @@ import torch.distributed as dist
 from algorithmic_efficiency import spec
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
-USE_PYTORCH_DDP, RANK, DEVICE, _ = pytorch_setup()
+USE_PYTORCH_DDP, RANK, DEVICE, _, _ = pytorch_setup()
 
 try:
   import wandb  # pylint: disable=g-import-not-at-top
