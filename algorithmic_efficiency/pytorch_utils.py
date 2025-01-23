@@ -21,7 +21,7 @@ def pytorch_setup() -> Tuple[bool, int, torch.device, int]:
   rank = int(os.environ['LOCAL_RANK']) if use_pytorch_ddp else 0
   device = torch.device(f'cuda:{rank}' if torch.cuda.is_available() else 'cpu')
   n_gpus = torch.cuda.device_count()
-  mesh = init_device_mesh('cuda', (1,n_gpus)) if use_pytorch_ddp else None
+  mesh = init_device_mesh('cuda', (n_gpus,)) if use_pytorch_ddp else None
   return use_pytorch_ddp, rank, device, n_gpus, mesh
 
 
