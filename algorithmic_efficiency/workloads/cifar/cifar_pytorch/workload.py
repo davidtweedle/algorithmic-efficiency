@@ -137,8 +137,8 @@ class CifarWorkload(BaseCifarWorkload):
     if N_GPUS > 1:
       if USE_PYTORCH_DDP:
         for module in self._model.modules():
-          fully_shard(module)
-        fully_shard(self._model)
+          fully_shard(module, mesh=MESH)
+        fully_shard(self._model, mesh=MESH)
       else:
         self._model = torch.nn.DataParallel(self._model)
     return self._model, None
