@@ -21,7 +21,7 @@ from algorithmic_efficiency.workloads.cifar.cifar_pytorch.models import \
     resnet18
 from algorithmic_efficiency.workloads.cifar.workload import BaseCifarWorkload
 
-USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS, MESH = pytorch_utils.pytorch_setup()
+USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_utils.pytorch_setup()
 
 
 class CifarWorkload(BaseCifarWorkload):
@@ -137,8 +137,8 @@ class CifarWorkload(BaseCifarWorkload):
     if N_GPUS > 1:
       if USE_PYTORCH_DDP:
         for module in self._model.modules():
-          fully_shard(module, mesh=MESH)
-        fully_shard(self._model, mesh=MESH)
+          fully_shard(module)
+        self._model = fully_shard(self._model)
       else:
         self._model = torch.nn.DataParallel(self._model)
     return self._model, None

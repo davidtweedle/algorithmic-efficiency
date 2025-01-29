@@ -19,7 +19,7 @@ import torch
 from algorithmic_efficiency import spec
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
 
-_, _, DEVICE, _, _ = pytorch_setup()
+_, _, DEVICE, _ = pytorch_setup()
 CheckpointReturn = Tuple[spec.OptimizerState,
                          spec.ParameterContainer,
                          spec.ModelAuxiliaryState,

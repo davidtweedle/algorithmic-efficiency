@@ -6,7 +6,6 @@ import jax
 import tensorflow as tf
 import torch
 import torch.distributed as dist
-from torch.distributed.device_mesh import init_device_mesh
 
 from algorithmic_efficiency import spec
 from algorithmic_efficiency.profiler import Profiler
@@ -21,8 +20,7 @@ def pytorch_setup() -> Tuple[bool, int, torch.device, int]:
   rank = int(os.environ['LOCAL_RANK']) if use_pytorch_ddp else 0
   device = torch.device(f'cuda:{rank}' if torch.cuda.is_available() else 'cpu')
   n_gpus = torch.cuda.device_count()
-  mesh = init_device_mesh('cuda', (n_gpus,)) if use_pytorch_ddp else None
-  return use_pytorch_ddp, rank, device, n_gpus, mesh
+  return use_pytorch_ddp, rank, device, n_gpus
 
 
 def pytorch_init(use_pytorch_ddp: bool, rank: int, profiler: Profiler) -> None:
