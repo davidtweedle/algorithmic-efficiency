@@ -11,7 +11,7 @@ from algorithmic_efficiency import spec
 from algorithmic_efficiency.pytorch_utils import pytorch_setup
 import algorithmic_efficiency.random_utils as prng
 
-USE_PYTORCH_DDP, _, _, _, _ = pytorch_setup()
+USE_PYTORCH_DDP, _, _, _ = pytorch_setup()
 
 
 class BaseCifarWorkload(spec.Workload):
