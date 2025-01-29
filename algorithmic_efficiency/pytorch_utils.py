@@ -48,6 +48,7 @@ def pytorch_init(use_pytorch_ddp: bool, rank: int, profiler: Profiler) -> None:
         pass
 
       logging.info = logging_pass
+    dist.init_process_group('nccl')
 
 def sync_ddp_time(time: float, device: torch.device) -> float:
   time_tensor = torch.tensor(time, dtype=torch.float64, device=device)
