@@ -1,5 +1,6 @@
 """CIFAR10 workload implemented in PyTorch."""
 
+from absl import logging
 import contextlib
 import functools
 import random
@@ -140,7 +141,7 @@ class CifarWorkload(BaseCifarWorkload):
           try:
             fully_shard(module)
           except AssertionError as e:
-            logger.info(f"Caught {e}, on module {module}")
+            logging.info(f"Caught {e}, on module {module}")
             raise
         self._model = fully_shard(self._model)
       else:
