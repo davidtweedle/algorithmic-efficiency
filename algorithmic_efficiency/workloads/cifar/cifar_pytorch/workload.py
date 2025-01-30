@@ -137,7 +137,7 @@ class CifarWorkload(BaseCifarWorkload):
     if N_GPUS > 1:
       if USE_PYTORCH_DDP:
         for module in self._model.modules():
-	  try:
+          try:
             fully_shard(module)
           except AssertionError as e:
             logger.info(f"Caught {e}, on module {module}")
