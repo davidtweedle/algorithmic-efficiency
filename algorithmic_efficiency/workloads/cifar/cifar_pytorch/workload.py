@@ -139,7 +139,7 @@ class CifarWorkload(BaseCifarWorkload):
       if USE_PYTORCH_DDP:
         for module in list(self._model.modules())[::-1]:
           fully_shard(module)
-        self._model = fully_shard(self._model)
+        #self._model = fully_shard(self._model)
         logging.info(f"Model info {self._model}")
       else:
         self._model = torch.nn.DataParallel(self._model)
