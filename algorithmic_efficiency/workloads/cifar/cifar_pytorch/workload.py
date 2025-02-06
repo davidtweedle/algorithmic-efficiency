@@ -138,7 +138,7 @@ class CifarWorkload(BaseCifarWorkload):
     if N_GPUS > 1:
       if USE_PYTORCH_DDP:
         for module in list(self._model.modules())[::-1]:
-          logging.info(f"Module {module}, Module weights, {module.weight}")
+          logging.info(f"Module {module}")
           fully_shard(module)
         #self._model = fully_shard(self._model)
       else:
