@@ -137,13 +137,10 @@ class CifarWorkload(BaseCifarWorkload):
     self._model.to(DEVICE)
     if N_GPUS > 1:
       if USE_PYTORCH_DDP:
-        for module in self._model.modules():
-          try:
-            fully_shard(module)
-          except AssertionError as e:
-            logging.info(f"Caught {e}, on module {module}")
-            raise
-        self._model = fully_shard(self._model)
+        for module in self._model.modules()[::-1]
+          logger.info(f"Module {module}, Module weights, {module.weight}")
+          fully_shard(module)
+        #self._model = fully_shard(self._model)
       else:
         self._model = torch.nn.DataParallel(self._model)
     return self._model, None
