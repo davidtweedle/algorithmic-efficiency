@@ -6,6 +6,7 @@ from typing import Dict, Iterator, Optional, Tuple
 import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.distributed._composable.fsdp import fully_shard
 
 from algorithmic_efficiency import param_utils
 from algorithmic_efficiency import spec
@@ -15,7 +16,23 @@ from algorithmic_efficiency.workloads.criteo1tb.workload import \
     BaseCriteo1TbDlrmSmallWorkload
 
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
+from torch.distributed.device_mesh import init_device_mesh 
 
+DDP_MESH = init_device_mesh("cuda", (N_GPUS,1), mesh_dim_names=("replicate", "shard"))
+
+FSDP2_ARGS = [{},
+              {},
+              {'shard_placement_fn': (lambda x: Shard(1))},
+              {'mesh': DDP_MESH},
+              {'mesh': DDP_MESH},
+              {'mesh': DDP_MESH},
+              {},
+              {'mesh': DDP_MESH},
+              {'mesh': DDP_MESH},
+              {'mesh': DDP_MESH},
+              {'mesh': DDP_MESH},
+              {}
+             ]
 
 class Criteo1TbDlrmSmallWorkload(BaseCriteo1TbDlrmSmallWorkload):
 
@@ -93,7 +110,8 @@ class Criteo1TbDlrmSmallWorkload(BaseCriteo1TbDlrmSmallWorkload):
     model.to(DEVICE)
     if N_GPUS > 1:
       if USE_PYTORCH_DDP:
-        model = DDP(model, device_ids=[RANK], output_device=RANK)
+        for module, args in zip(model.modules(), FSDP_ARGS_LIST).reverse()
+          fully_shard(module, **args)
       else:
         model = torch.nn.DataParallel(model)
     return model, None
