@@ -110,7 +110,7 @@ class Criteo1TbDlrmSmallWorkload(BaseCriteo1TbDlrmSmallWorkload):
     model.to(DEVICE)
     if N_GPUS > 1:
       if USE_PYTORCH_DDP:
-        for module, args in zip(model.modules(), FSDP_ARGS_LIST).reverse()
+        for module, args in reverse(zip(model.modules(), FSDP2_ARGS))
           fully_shard(module, **args)
       else:
         model = torch.nn.DataParallel(model)
