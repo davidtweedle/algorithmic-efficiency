@@ -114,7 +114,7 @@ class Criteo1TbDlrmSmallWorkload(BaseCriteo1TbDlrmSmallWorkload):
       if USE_PYTORCH_DDP:
         for module, kwargs in zip(reversed(list(model.modules())), reversed(FSDP2_ARGS)):
           logging.info(f"kwargs are {kwargs}, Module is {module}")
-          fully_shard(module, **args)
+          fully_shard(module=module, **kwargs)
       else:
         model = torch.nn.DataParallel(model)
     return model, None
