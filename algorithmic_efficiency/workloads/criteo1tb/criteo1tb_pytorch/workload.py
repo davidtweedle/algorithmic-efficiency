@@ -24,7 +24,7 @@ DDP_MESH = init_device_mesh("cuda", (N_GPUS,1), mesh_dim_names=("replicate", "sh
 
 FSDP2_ARGS = [{},
               {},
-              {'shard_placement_fn': (lambda x: Shard(1))},
+              {},
               {'mesh': DDP_MESH},
               {'mesh': DDP_MESH},
               {'mesh': DDP_MESH},
