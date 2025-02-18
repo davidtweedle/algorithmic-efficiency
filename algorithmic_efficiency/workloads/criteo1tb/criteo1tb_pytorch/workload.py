@@ -3,6 +3,8 @@
 import contextlib
 from typing import Dict, Iterator, Optional, Tuple
 
+from absl import logging
+
 import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -110,7 +112,8 @@ class Criteo1TbDlrmSmallWorkload(BaseCriteo1TbDlrmSmallWorkload):
     model.to(DEVICE)
     if N_GPUS > 1:
       if USE_PYTORCH_DDP:
-        for module, args in zip(reversed(list(model.modules())), reversed(FSDP2_ARGS)):
+        for module, kwargs in zip(reversed(list(model.modules())), reversed(FSDP2_ARGS)):
+          logging.info(f"kwargs are {kwargs}, Module is {module}")
           fully_shard(module, **args)
       else:
         model = torch.nn.DataParallel(model)
