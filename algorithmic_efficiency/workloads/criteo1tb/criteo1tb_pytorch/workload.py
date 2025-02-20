@@ -123,7 +123,7 @@ class Criteo1TbDlrmSmallWorkload(BaseCriteo1TbDlrmSmallWorkload):
           if RANK == 0:
             logging.info(f"kwargs are {kwargs}, Module is {module}")
           if 'ignored_params' in kwargs:
-            for param in module.parameters:
+            for param in module.parameters():
               kwargs['ignored_params'].add(param)
           fully_shard(module=module, **kwargs)
       else:
