@@ -26,19 +26,19 @@ FSDP2_ARGS = [{}, # DLRM small layer
               {}, # sequential layer
               {}, # linear layer (512, 13)
               {}, # relu
-              {'mesh': DDP_MESH}, # linear (256, 512)
+              {'ignored_params': set()}, # linear (256, 512)
               {}, # relu
-              {'mesh': DDP_MESH}, # linear (128, 256)
+              {'ignored_params': set()}, # linear (128, 256)
               {}, # relu
               {}, # dot interact
               {}, # sequential
-              {'mesh': DDP_MESH}, # linear (1024, 506)
+              {'ignored_params': set()}, # linear (1024, 506)
               {}, # relu
-              {'mesh': DDP_MESH}, # linear (1024, 1024)
+              {'ignored_params': set()}, # linear (1024, 1024)
               {}, # relu
-              {'mesh': DDP_MESH}, # linear (512, 1024)
+              {'ignored_params': set()}, # linear (512, 1024)
               {}, # relu
-              {'mesh': DDP_MESH}, # linear (256, 512)
+              {'ignored_params': set()}, # linear (256, 512)
               {}, # relu
               {} # linear (1, 256)
              ]
@@ -122,6 +122,9 @@ class Criteo1TbDlrmSmallWorkload(BaseCriteo1TbDlrmSmallWorkload):
         for module, kwargs in zip(reversed(list(model.modules())), reversed(FSDP2_ARGS)):
           if RANK == 0:
             logging.info(f"kwargs are {kwargs}, Module is {module}")
+          if 'ignored_params' in kwargs:
+            for param in module.parameters:
+              kwargs['ignored_params'].add(param)
           fully_shard(module=module, **kwargs)
       else:
         model = torch.nn.DataParallel(model)
