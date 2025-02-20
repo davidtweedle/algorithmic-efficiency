@@ -22,18 +22,25 @@ from torch.distributed.device_mesh import init_device_mesh
 
 DDP_MESH = init_device_mesh("cuda", (N_GPUS,1), mesh_dim_names=("replicate", "shard"))
 
-FSDP2_ARGS = [{},
-              {},
-              {},
-              {'mesh': DDP_MESH},
-              {'mesh': DDP_MESH},
-              {'mesh': DDP_MESH},
-              {},
-              {'mesh': DDP_MESH},
-              {'mesh': DDP_MESH},
-              {'mesh': DDP_MESH},
-              {'mesh': DDP_MESH},
-              {}
+FSDP2_ARGS = [{}, # DLRM small layer
+              {}, # sequential layer
+              {}, # linear layer (512, 13)
+              {}, # relu
+              {'mesh': DDP_MESH}, # linear (256, 512)
+              {}, # relu
+              {'mesh': DDP_MESH}, # linear (128, 256)
+              {}, # relu
+              {}, # dot interact
+              {}, # sequential
+              {'mesh': DDP_MESH}, # linear (1024, 506)
+              {}, # relu
+              {'mesh': DDP_MESH}, # linear (1024, 1024)
+              {}, # relu
+              {'mesh': DDP_MESH}, # linear (512, 1024)
+              {}, # relu
+              {'mesh': DDP_MESH}, # linear (256, 512)
+              {}, # relu
+              {} # linear (1, 256)
              ]
 
 class Criteo1TbDlrmSmallWorkload(BaseCriteo1TbDlrmSmallWorkload):
