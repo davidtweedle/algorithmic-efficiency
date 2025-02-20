@@ -120,7 +120,8 @@ class Criteo1TbDlrmSmallWorkload(BaseCriteo1TbDlrmSmallWorkload):
     if N_GPUS > 1:
       if USE_PYTORCH_DDP:
         for module, kwargs in zip(reversed(list(model.modules())), reversed(FSDP2_ARGS)):
-          logging.info(f"kwargs are {kwargs}, Module is {module}")
+          if RANK == 0:
+            logging.info(f"kwargs are {kwargs}, Module is {module}")
           fully_shard(module=module, **kwargs)
       else:
         model = torch.nn.DataParallel(model)
