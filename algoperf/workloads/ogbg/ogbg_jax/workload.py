@@ -108,14 +108,14 @@ class OgbgWorkload(BaseOgbgWorkload):
         loss=loss['per_example'], logits=logits, labels=labels, mask=masks)
 
   @functools.partial(
-      jax.jit,
-      in_shardings=(
-        sharding_utils.get_replicated_sharding(), # params
-        sharding_utils.get_naive_sharding_spec(), # batch
-        sharding_utils.get_replicated_sharding(), # model_state
-        sharding_utils.get_naive_sharding_spec(), # rng
-      ),
-      static_argnums=(0,)
+    jax.jit,
+    in_shardings=(
+      sharding_utils.get_replicated_sharding(), # params
+      sharding_utils.get_naive_sharding_spec(), # batch
+      sharding_utils.get_replicated_sharding(), # model_state
+      sharding_utils.get_naive_sharding_spec(), # rng
+    ),
+    static_argnums=(0,)
   )
   def _eval_batch(self, params, batch, model_state, rng):
     return super()._eval_batch(params, batch, model_state, rng)
