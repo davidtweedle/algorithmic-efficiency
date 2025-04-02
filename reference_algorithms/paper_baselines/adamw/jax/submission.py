@@ -55,15 +55,16 @@ def init_optimizer_state(workload: spec.Workload,
 
   return optimizer_state, opt_update_fn
 
+
 def train_step(workload,
-                      opt_update_fn,
-                      model_state,
-                      optimizer_state,
-                      current_param_container,
-                      batch,
-                      rng,
-                      grad_clip,
-                      label_smoothing):
+               opt_update_fn,
+               model_state,
+               optimizer_state,
+               current_param_container,
+               batch,
+               rng,
+               grad_clip,
+               label_smoothing):
 
   def _loss_fn(params):
     """Loss function used for training."""
@@ -73,7 +74,7 @@ def train_step(workload,
         model_state,
         spec.ForwardPassMode.TRAIN,
         rng,
-        update_batch_norm=True)
+        update_batch_norm=True,)
     loss_dict = workload.loss_fn(
         label_batch=batch['targets'],
         logits_batch=logits,
@@ -139,32 +140,29 @@ def update_params(
   replicated = NamedSharding(mesh, P())  # No partitioning
   sharded = NamedSharding(mesh, P('batch'))  # Partition along batch dimension
 
-  # Define input and output shardings
-  arg_shardings = (
-      # workload is static
-      # opt_update_fn is static
-      replicated,  # model_state
-      replicated,  # optimizer_state
-      replicated,  # current_param_container
-      sharded,  # batch
-      replicated,  # rng
-      replicated,  # grad_clip
-      replicated  # label_smoothing
-  )
-  out_shardings = (
-      replicated,  # new_optimizer_state
-      replicated,  # updated_params
-      replicated,  # new_model_state
-      replicated,  # loss
-      replicated  # grad_norm
-  )
   jitted_train_step = jax.jit(
       train_step,
       static_argnums=(0, 1),
       donate_argnums=(2, 3, 4),
-      in_shardings=arg_shardings,
-      out_shardings=out_shardings
-      )
+      in_shardings= (
+                  # workload is static
+                  # opt_update_fn is static
+                  replicated,  # model_state
+                  replicated,  # optimizer_state
+                  replicated,  # current_param_container
+                  sharded,  # batch
+                  replicated,  # rng
+                  replicated,  # grad_clip
+                  replicated  # label_smoothing
+                  ),
+      out_shardings=(
+                  replicated,  # new_optimizer_state
+                  replicated,  # updated_params
+                  replicated,  # new_model_state
+                  replicated,  # loss
+                  replicated  # grad_norm
+  ))
+  # print(batch)
   new_optimizer_state, new_params, new_model_state, loss, grad_norm = jitted_train_step(workload,
                               opt_update_fn,
                               model_state,
@@ -176,7 +174,7 @@ def update_params(
                               label_smoothing)
 
   # Log loss, grad_norm.
-  if global_step % 100 == 0 and workload.metrics_logger is not None:
+  if global_step % 1 == 0 and workload.metrics_logger is not None:
     workload.metrics_logger.append_scalar_metrics(
         {
             'loss': loss.item(),
@@ -223,7 +221,7 @@ def get_batch_size(workload_name):
   elif workload_name == 'librispeech_conformer':
     return 256
   elif workload_name == 'librispeech_deepspeech':
-    return 256
+    return 16
   elif workload_name == 'ogbg':
     return 512
   elif workload_name == 'wmt':
