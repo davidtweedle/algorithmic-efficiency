@@ -124,6 +124,7 @@ def train_step(workload,
     n_valid_examples = loss_dict['n_valid_examples']
     return summed_loss, (n_valid_examples, new_model_state)
 
+  jax.debug.print("Batch is {batch}", batch=batch)
   grad_fn = jax.value_and_grad(_loss_fn, has_aux=True)
   (summed_loss, (n_valid_examples, new_model_state)), grad = grad_fn(
       current_param_container)
