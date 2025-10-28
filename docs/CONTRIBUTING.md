@@ -23,12 +23,13 @@
   - [Unit and Integration Tests](#unit-and-integration-tests)
   - [Regression Tests](#regression-tests)
   - [Versioning](#versioning)
+    - [Release Process](#release-process)
 
 ## Contributing to MLCommons
 
 We invite everyone to look through our technical documentation and codebase and submit issues and pull requests, e.g. for changes, clarifications, or any bugs you might encounter. If you are interested in contributing to the work of the working group and influence the benchmark's design decisions, please [join the weekly meetings](https://mlcommons.org/en/groups/research-algorithms/) and consider becoming a member of the working group.
 
-The best way to contribute to the MLCommons is to get involved with one of our many project communities. You find more information about getting involved with MLCommons [here](https://mlcommons.org/en/get-involved/#getting-started).
+The best way to contribute to the MLCommons is to get involved with one of our many project communities. You can find more information about getting involved with MLCommons on our [getting started page](https://mlcommons.org/en/get-involved/#getting-started).
 
 Generally we encourage people to become a MLCommons member if they wish to contribute to MLCommons projects, but outside pull requests are very welcome too.
 
@@ -46,12 +47,12 @@ We recommmend to use the Deep Learning on Linux image. Further instructions are 
 
 ### Installing GPU Drivers
 
-You can use the `scripts/cloud-startup.sh` as a startup script for the VM. This will automate the installation of the NVIDIA GPU Drivers and NVIDIA Docker toolkit.
+You can use the `docker/scripts/cloud-startup.sh` as a startup script for the VM. This will automate the installation of the NVIDIA GPU Drivers and NVIDIA Docker toolkit.
 
 ### Authentication for Google Cloud Container Registry
 
 To access the Google Cloud Container Registry, you will have to authenticate to the repository whenever you use Docker.
-Use the gcloud credential helper as documented [here](https://cloud.google.com/artifact-registry/docs/docker/pushing-and-pulling#cred-helper).
+Use the gcloud credential helper as documented in the [Google Cloud documentation](https://cloud.google.com/artifact-registry/docs/docker/pushing-and-pulling#cred-helper).
 
 ## Installation
 
@@ -179,13 +180,13 @@ docker run -t -d \
 To find the container IDs of running containers
 
 ```bash
-docker ps 
+docker ps
 ```
 
 To see the logging output
 
 ```bash
-docker logs <container_id> 
+docker logs <container_id>
 ```
 
 To enter a bash session in the container
@@ -209,7 +210,7 @@ docker run -t -d \
 --gpus all \
 --ipc=host \
 <image_path> \
---keep_container_alive true 
+--keep_container_alive true
 ```
 
 ## Submitting PRs
@@ -222,43 +223,31 @@ We run tests with GitHub Actions, configured in the [.github/workflows](.github/
 
 ### Style Testing
 
-We run yapf and linting tests on PRs. You can view and fix offending errors with these instructions.
-
+We run formatting and linting tests via ruff on PRs. You can view and fix offending errors with these instructions.
 To run the below commands, use the versions installed via `pip install -e '.[dev]'`.
 
-To automatically fix formatting errors, run the following (*WARNING:* this will edit your code, so it is suggested to make a git commit first!):
+To check whether your code is **formatted** correctly, run the following:
 
 ```bash
-yapf -i -r -vv -p algoperf datasets prize_qualification_baselines reference_algorithms tests *.py
+ruff format --check
 ```
 
-To sort all import orderings, run the following:
+To automatically fix formatting errors you can run `ruff format`, without the `--check` flag.
+(**WARNING**: this will edit your code, so it is suggested to make a git commit first!)
+
+To check whether your code is **linted** correctly, run the following:
 
 ```bash
-isort .
+ruff check
 ```
 
-To just print out all offending import orderings, run the following:
-
-```bash
-isort . --check --diff
-```
-
-To print out all offending pylint issues, run the following:
-
-```bash
-pylint algoperf
-pylint datasets
-pylint prize_qualification_baselines
-pylint reference_algorithms
-pylint submission_runner.py
-pylint tests
-```
+To automatically fix linting errors you can run `ruff check --fix`, with the additional `--fix` flag.
+(**WARNING**: this will edit your code, so it is suggested to make a git commit first!)
 
 ### Unit and Integration Tests
 
 We run unit tests and integration tests as part of the of github actions as well.
-You can also use `python tests/reference_algorithm_tests.py` to run a single model update and two model evals for each workload using the reference algorithm in `reference_algorithms/target_setting_algorithms/`.
+You can also use `python tests/reference_algorithm_tests.py` to run a single model update and two model evals for each workload using the reference algorithm in `algorithms/target_setting_algorithms/`.
 
 ### Regression Tests
 
@@ -270,9 +259,9 @@ To run a regression test:
 
 1. Build and upload latest Docker images from dev branch.
 
-    ```bash
-    bash ~/algorithmic-efficiency/docker/build_docker_images.sh -b dev
-    ```
+   ```bash
+   bash ~/algorithmic-efficiency/docker/build_docker_images.sh -b dev
+   ```
 
 2. Turn on the self-hosted runner.
 3. Run the self-hosted runner application for the runner to accept jobs.
@@ -280,12 +269,35 @@ To run a regression test:
 
 ### Versioning
 
+AlgoPerf uses a unified versioning scheme: codebase, rules, and leaderboard all share the same `Major.Minor` version. `Patch` versions may differ for minor updates to each component. All results produced under the same `Major.Minor` version should be comparable. See the [README](../README.md#releases--roadmap) and [Changelog](CHANGELOG.md) for details.
+
 The package version is automatically determined by the `setuptools_scm` package based on the last git tag.
 It follows the structure `major.minor.patch` + `devN` where `N` is the number of commits since the last tag.
 It automatically increments the patch version (i.e. it guesses the next version) if there are commits after the last tag.
 Additionally, if there are uncommitted changes, the version will include a suffix separated by a `+` character and includes the last commit hash plus the date on dirt workdir (see [setuptools_scm's documentation](https://setuptools-scm.readthedocs.io/en/latest/extending/#setuptools_scmlocal_scheme) with the default version and local scheme).
 You can check what version `setuptools_scm` is creating by running `python -m setuptools_scm`.
 
-To create a new version, create a new release (and tag) in the GitHub UI.
-The package version is automatically updated to the new version.
-Once the package is installed, the version can be accessed as the package attribute `algoperf.__version__`, i.e. via `python -c "import algoperf; print(algoperf.__version__)"`.
+#### Release Process
+
+The suggested workflow:
+
+- **Development:**
+
+  - All changes will be on the `dev` (or `dev-0.X` or similar) branch. Only merge to `main` once we release.
+  - For internal milestones, we could use pre-release labels like `-alpha.N`, `-beta.N` or `-rc.N`.
+  - Iterative changes here, do not increment the version, since on this branch we are working _towards_ the next release.
+  - All changes should be documented in the `CHANGELOG.md` for the upcoming version release. This includes changes in the code and the rules.
+  - Do **not** manually edit version numbers in the codebase or `pyproject.toml`.
+
+- **Changes:** All changes that affect the results of the benchmark should result in increases to either the `Major` or `Minor` version. We could reserve increases to the `Major` version for larger changes like adding new workloads. Changes that do not affect the results of the benchmark should result in increases to the `Patch` version and could include the following:
+
+  - _Codebase:_ Implement bug fixes, improvements, or new features. The git tag version automatically updates the `algoperf.__version__` of the package.
+  - _Documentation/Rules:_ Updates like clarifications, typo fixes, or new content. Update the version in `docs/DOCUMENTATION.md` with the new version.
+  - _Leaderboard:_ For example, adding a new submission, correcting typos, or adding details could result in updating the version as documented in the `submissions_algorithms` repo.
+
+- **Release new version:**
+  - Check that `CHANGELOG.md` is up-to-date and complete.
+  - Update the version in `docs/DOCUMENTATION.md` with the new version.
+  - Update the release plan in the [README](../README.md#releases--roadmap) with the new version.
+  - Merge `dev` or `dev-0.X` into `main`.
+  - Tag release with new version in the GitHub UI. The package version is automatically updated to the new version. Once the package is installed, the version can be accessed as the package attribute `algoperf.__version__`, i.e. via `python -c "import algoperf; print(algoperf.__version__)"`.

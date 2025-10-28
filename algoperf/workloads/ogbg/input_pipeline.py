@@ -14,10 +14,10 @@ AVG_NODES_PER_GRAPH = 26
 AVG_EDGES_PER_GRAPH = 56
 
 TFDS_SPLIT_NAME = {
-    'train': 'train',
-    'eval_train': 'train',
-    'validation': 'validation',
-    'test': 'test',
+  'train': 'train',
+  'eval_train': 'train',
+  'validation': 'validation',
+  'test': 'test',
 }
 
 
@@ -33,11 +33,12 @@ def _load_dataset(split, should_shuffle, data_rng, data_dir):
 
   read_config = tfds.ReadConfig(add_tfds_id=True, shuffle_seed=file_data_rng)
   dataset = tfds.load(
-      'ogbg_molpcba:0.1.3',
-      split=TFDS_SPLIT_NAME[split],
-      shuffle_files=should_shuffle,
-      read_config=read_config,
-      data_dir=data_dir)
+    'ogbg_molpcba:0.1.3',
+    split=TFDS_SPLIT_NAME[split],
+    shuffle_files=should_shuffle,
+    read_config=read_config,
+    data_dir=data_dir,
+  )
 
   if should_shuffle:
     dataset = dataset.shuffle(seed=dataset_data_rng, buffer_size=2**15)
@@ -62,16 +63,17 @@ def _to_jraph(example):
   receivers = edge_index[:, 1]
 
   return jraph.GraphsTuple(
-      n_node=num_nodes,
-      n_edge=np.array([len(edge_index) * 2]),
-      nodes=node_feat,
-      edges=np.concatenate([edge_feat, edge_feat]),
-      # Make the edges bidirectional
-      senders=np.concatenate([senders, receivers]),
-      receivers=np.concatenate([receivers, senders]),
-      # Keep the labels with the graph for batching. They will be removed
-      # in the processed batch.
-      globals=np.expand_dims(labels, axis=0))
+    n_node=num_nodes,
+    n_edge=np.array([len(edge_index) * 2]),
+    nodes=node_feat,
+    edges=np.concatenate([edge_feat, edge_feat]),
+    # Make the edges bidirectional
+    senders=np.concatenate([senders, receivers]),
+    receivers=np.concatenate([receivers, senders]),
+    # Keep the labels with the graph for batching. They will be removed
+    # in the processed batch.
+    globals=np.expand_dims(labels, axis=0),
+  )
 
 
 def _get_weights_by_nan_and_padding(labels, padding_mask):
@@ -96,7 +98,9 @@ def _get_weights_by_nan_and_padding(labels, padding_mask):
   return replaced_labels, weights
 
 
-def _get_batch_iterator(dataset_iter, global_batch_size, num_shards=None):
+def _get_batch_iterator(
+  dataset_iter, global_batch_size, num_shards=None, shard_dim=False
+):
   """Turns a per-example iterator into a batched iterator.
 
   Constructs the batch from num_shards smaller batches, so that we can easily
@@ -123,10 +127,9 @@ def _get_batch_iterator(dataset_iter, global_batch_size, num_shards=None):
   max_n_graphs = per_device_batch_size
 
   jraph_iter = map(_to_jraph, dataset_iter)
-  batched_iter = jraph.dynamically_batch(jraph_iter,
-                                         max_n_nodes + 1,
-                                         max_n_edges,
-                                         max_n_graphs + 1)
+  batched_iter = jraph.dynamically_batch(
+    jraph_iter, max_n_nodes + 1, max_n_edges, max_n_graphs + 1
+  )
 
   count = 0
   graphs_shards = []
@@ -141,25 +144,39 @@ def _get_batch_iterator(dataset_iter, global_batch_size, num_shards=None):
     graph = batched_graph._replace(globals={})
 
     replaced_labels, weights = _get_weights_by_nan_and_padding(
-        labels, jraph.get_graph_padding_mask(graph))
+      labels, jraph.get_graph_padding_mask(graph)
+    )
 
     graphs_shards.append(graph)
     labels_shards.append(replaced_labels)
     weights_shards.append(weights)
 
     if count == num_shards:
+      if not shard_dim:
+        # jraph.batch has a memory leak and OOMs
+        # It is possible with jraph.batch_np we may have transferred the leak
+        # to the cpu.
+        yield {
+          'inputs': jraph.batch_np(graphs_shards),
+          'targets': np.vstack(labels_shards),
+          'weights': np.vstack(weights_shards),
+        }
 
-      def f(x):
-        return jax.tree.map(lambda *vals: np.stack(vals, axis=0), x[0], *x[1:])
+      else:
 
-      graphs_shards = f(graphs_shards)
-      labels_shards = f(labels_shards)
-      weights_shards = f(weights_shards)
-      yield {
+        def f(x):
+          return jax.tree.map(
+            lambda *vals: np.stack(vals, axis=0), x[0], *x[1:]
+          )
+
+        graphs_shards = f(graphs_shards)
+        labels_shards = f(labels_shards)
+        weights_shards = f(weights_shards)
+        yield {
           'inputs': graphs_shards,
           'targets': labels_shards,
           'weights': weights_shards,
-      }
+        }
 
       count = 0
       graphs_shards = []
@@ -167,8 +184,11 @@ def _get_batch_iterator(dataset_iter, global_batch_size, num_shards=None):
       weights_shards = []
 
 
-def get_dataset_iter(split, data_rng, data_dir, global_batch_size):
+def get_dataset_iter(
+  split, data_rng, data_dir, global_batch_size, shard_dim=False
+):
   shuffle = split in ['train', 'eval_train']
   ds = _load_dataset(
-      split, should_shuffle=shuffle, data_rng=data_rng, data_dir=data_dir)
-  return _get_batch_iterator(iter(ds), global_batch_size)
+    split, should_shuffle=shuffle, data_rng=data_rng, data_dir=data_dir
+  )
+  return _get_batch_iterator(iter(ds), global_batch_size, shard_dim=shard_dim)
