@@ -1,7 +1,7 @@
 """Submission file for a SAM optimizer with warmup+cosine LR in Jax."""
 
 import functools
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from flax import jax_utils
 import jax
@@ -9,7 +9,7 @@ from jax import lax
 import jax.numpy as jnp
 import optax
 
-from algorithmic_efficiency import spec
+from algoperf import spec
 
 _GRAD_CLIP_EPS = 1e-6
 
@@ -24,7 +24,7 @@ def dual_vector(y: jnp.ndarray) -> jnp.ndarray:
   """
   gradient_norm = jnp.sqrt(
       sum(jnp.sum(jnp.square(e)) for e in jax.tree_util.tree_leaves(y)))
-  normalized_gradient = jax.tree_map(lambda x: x / gradient_norm, y)
+  normalized_gradient = jax.tree.map(lambda x: x / gradient_norm, y)
   return normalized_gradient
 
 
@@ -73,12 +73,12 @@ def sharpness_aware_minimization(
     # Get correct global mean grad.
     (n_valid_examples, updates) = lax.psum((n_valid_examples, updates),
                                            axis_name=batch_axis_name)
-    updates = jax.tree_map(lambda x: x / n_valid_examples, updates)
+    updates = jax.tree.map(lambda x: x / n_valid_examples, updates)
 
     if grad_clip:
       updates_norm = jnp.sqrt(
           sum(jnp.sum(g**2) for g in jax.tree_util.tree_leaves(updates)))
-      scaled_updates = jax.tree_map(
+      scaled_updates = jax.tree.map(
           lambda x: x / (updates_norm + _GRAD_CLIP_EPS) * grad_clip, updates)
       updates = jax.lax.cond(updates_norm > grad_clip,
                              lambda _: scaled_updates,
@@ -136,7 +136,7 @@ def init_optimizer_state(workload: spec.Workload,
       base_opt_update_fn=opt_update_fn)
 
   # Initialize optimizer state.
-  params_zeros_like = jax.tree_map(lambda s: jnp.zeros(s.shape_tuple),
+  params_zeros_like = jax.tree.map(lambda s: jnp.zeros(s.shape_tuple),
                                    workload.param_shapes)
   optimizer_state = opt_init_fn(params_zeros_like)
 
@@ -186,7 +186,7 @@ def pmapped_train_step(workload,
   (summed_loss, n_valid_examples, grad) = lax.psum(
       (summed_loss, n_valid_examples, grad), axis_name='batch')
   loss = summed_loss / n_valid_examples
-  grad = jax.tree_map(lambda x: x / n_valid_examples, grad)
+  grad = jax.tree.map(lambda x: x / n_valid_examples, grad)
 
   grad_norm = jnp.sqrt(
       sum(jnp.sum(g**2) for g in jax.tree_util.tree_leaves(grad)))
@@ -197,20 +197,23 @@ def pmapped_train_step(workload,
   return new_optimizer_state, updated_params, new_model_state, loss, grad_norm
 
 
-def update_params(workload: spec.Workload,
-                  current_param_container: spec.ParameterContainer,
-                  current_params_types: spec.ParameterTypeTree,
-                  model_state: spec.ModelAuxiliaryState,
-                  hyperparameters: spec.Hyperparameters,
-                  batch: Dict[str, spec.Tensor],
-                  loss_type: spec.LossType,
-                  optimizer_state: spec.OptimizerState,
-                  eval_results: List[Tuple[int, float]],
-                  global_step: int,
-                  rng: spec.RandomState) -> spec.UpdateReturn:
+def update_params(
+    workload: spec.Workload,
+    current_param_container: spec.ParameterContainer,
+    current_params_types: spec.ParameterTypeTree,
+    model_state: spec.ModelAuxiliaryState,
+    hyperparameters: spec.Hyperparameters,
+    batch: Dict[str, spec.Tensor],
+    loss_type: spec.LossType,
+    optimizer_state: spec.OptimizerState,
+    eval_results: List[Tuple[int, float]],
+    global_step: int,
+    rng: spec.RandomState,
+    train_state: Optional[Dict[str, Any]] = None) -> spec.UpdateReturn:
   """Return (updated_optimizer_state, updated_params, updated_model_state)."""
   del current_params_types
   del loss_type
+  del train_state
   del eval_results
 
   optimizer_state, opt_update_fn = optimizer_state
@@ -242,6 +245,27 @@ def update_params(workload: spec.Workload,
             'grad_norm': grad_norm[0],
         }, global_step)
   return (new_optimizer_state, opt_update_fn), new_params, new_model_state
+
+
+def prepare_for_eval(workload: spec.Workload,
+                     current_param_container: spec.ParameterContainer,
+                     current_params_types: spec.ParameterTypeTree,
+                     model_state: spec.ModelAuxiliaryState,
+                     hyperparameters: spec.Hyperparameters,
+                     loss_type: spec.LossType,
+                     optimizer_state: spec.OptimizerState,
+                     eval_results: List[Tuple[int, float]],
+                     global_step: int,
+                     rng: spec.RandomState) -> spec.UpdateReturn:
+  """Return (updated_optimizer_state, updated_params)."""
+  del workload
+  del hyperparameters
+  del current_params_types
+  del loss_type
+  del eval_results
+  del global_step
+  del rng
+  return (optimizer_state, current_param_container, model_state)
 
 
 def get_batch_size(workload_name):

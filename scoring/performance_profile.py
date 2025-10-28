@@ -38,26 +38,30 @@ import numpy as np
 import pandas as pd
 from tabulate import tabulate
 
-from algorithmic_efficiency.workloads.workloads import get_base_workload_name
-import algorithmic_efficiency.workloads.workloads as workloads_registry
+from algoperf.workloads.workloads import get_base_workload_name
+import algoperf.workloads.workloads as workloads_registry
 from scoring import scoring_utils
 
 WORKLOADS = workloads_registry.WORKLOADS
 BASE_WORKLOADS = workloads_registry.BASE_WORKLOADS
 WORKLOAD_NAME_PATTERN = '(.*)(_jax|_pytorch)'
-BASE_WORKLOADS_DIR = 'algorithmic_efficiency/workloads/'
+BASE_WORKLOADS_DIR = 'algoperf/workloads/'
 # Open json file to read heldout workloads
-# TODO: This probably shouldn't be hardcoded but passed as an argument.
-with open("held_out_workloads_algoperf_v05.json", "r") as f:
-  HELDOUT_WORKLOADS = json.load(f)
+# TODO: This probably shouldn't be hardcoded but passed as an argument.\
+try:
+  with open("held_out_workloads_algoperf_v05.json", "r") as f:
+    HELDOUT_WORKLOADS = json.load(f)
+except:
+  HELDOUT_WORKLOADS = None
+
 # These global variables have to be set according to the current set of
 # workloads and rules for the scoring to be correct.
 # We do not use the workload registry since it contains test and development
 # workloads as well.
 NUM_BASE_WORKLOADS = 8
-NUM_VARIANT_WORKLOADS = 6
+NUM_VARIANT_WORKLOADS = 0
 NUM_TRIALS = 5
-NUM_STUDIES = 5
+NUM_STUDIES = 3
 
 MIN_EVAL_METRICS = [
     'ce_loss',
@@ -318,10 +322,11 @@ def compute_performance_profiles(submissions,
   # Restrict to base and sampled held-out workloads
   # (ignore the additional workload variants of the baseline
   # as they cause issues when checking for nans in workload variants).
-  df = df[BASE_WORKLOADS + HELDOUT_WORKLOADS]
+  if HELDOUT_WORKLOADS:
+    df = df[BASE_WORKLOADS + HELDOUT_WORKLOADS]
   # Sort workloads alphabetically (for better display)
   df = df.reindex(sorted(df.columns), axis=1)
-  
+
   # Save time to target dataframe
   df.to_csv(os.path.join(output_dir, 'time_to_targets.csv'))
   # For each held-out workload set to inf if the base workload is inf or nan

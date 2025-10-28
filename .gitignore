@@ -13,8 +13,8 @@ makefile
 *.swp
 */data/
 *events.out.tfevents*
-algorithmic_efficiency/workloads/librispeech_conformer/data_dir
-algorithmic_efficiency/workloads/librispeech_conformer/work_dir
+algoperf/workloads/librispeech_conformer/data_dir
+algoperf/workloads/librispeech_conformer/work_dir
 *.flac
 *.npy
 *.csv
@@ -26,5 +26,9 @@ scoring/plots/
 !scoring/test_data/experiment_dir/study_0/mnist_jax/trial_0/eval_measurements.csv
 !scoring/test_data/experiment_dir/study_0/mnist_jax/trial_1/eval_measurements.csv
 
+<<<<<<< HEAD
 tags
 *~
+=======
+algoperf/_version.py
+>>>>>>> c96ba6269f71f1c7bb2e5724f8cab82a35ab6580

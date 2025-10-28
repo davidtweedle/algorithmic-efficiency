@@ -51,6 +51,8 @@ RSYNC_DATA="true"
 OVERWRITE="false"
 SAVE_CHECKPOINTS="true"
 TUNING_RULESET="external"
+ROOT_DATA_BUCKET="algoperf-data"
+LOGS_BUCKET="algoperf-runs"
 
 # Pass flag
 while [ "$1" != "" ]; do
@@ -136,6 +138,14 @@ while [ "$1" != "" ]; do
             shift
             ADDITIONAL_REQUIREMENTS_PATH=$1
             ;;
+        --data_bucket)
+            shift
+            ROOT_DATA_BUCKET=$1
+            ;;
+        --logs_bucket)
+            shift
+            LOGS_BUCKET=$1
+            ;;
         *) 
             usage 
             exit 1
@@ -156,7 +166,7 @@ fi
 
 if [[ ${TEST} == "true" ]]; then
   cd algorithmic-efficiency
-  COMMAND="python3 tests/test_traindiffs.py"
+  COMMAND="python tests/test_traindiffs.py"
   echo $COMMAND
   eval $COMMAND
   exit
@@ -179,11 +189,11 @@ VALID_WORKLOADS=("criteo1tb" "imagenet_resnet" "imagenet_resnet_silu" "imagenet_
 VALID_RULESETS=("self" "external")
 
 # Set data and experiment paths
-ROOT_DATA_BUCKET="gs://mlcommons-data"
 ROOT_DATA_DIR="${HOME_DIR}/data"
+ROOT_DATA_BUCKET="gs://${ROOT_DATA_BUCKET}"
 
-EXPERIMENT_BUCKET="gs://mlcommons-runs"
 EXPERIMENT_DIR="${HOME_DIR}/experiment_runs"
+EXPERIMENT_LOGS_BUCKET="gs://${LOGS_BUCKET}"
 
 if [[ -n ${DATASET+x} ]]; then 
     if [[ ! " ${VALID_DATASETS[@]} " =~ " $DATASET " ]]; then
@@ -209,7 +219,7 @@ TUNING_RULESET_FLAG="--tuning_ruleset=${TUNING_RULESET}"
 
 # Set run command prefix depending on framework
 if [[ "${FRAMEWORK}" == "jax" ]]; then
-    COMMAND_PREFIX="python3"
+    COMMAND_PREFIX="python"
 else 
     COMMAND_PREFIX="torchrun --redirects 1:0,2:0,3:0,4:0,5:0,6:0,7:0 --standalone --nnodes=1 --nproc_per_node=8"
 fi
@@ -283,7 +293,6 @@ if [[ ! -z ${SUBMISSION_PATH+x} ]]; then
         --workload=${WORKLOAD} \
         --submission_path=${SUBMISSION_PATH}  \
         --data_dir=${DATA_DIR} \
-        --num_tuning_trials=1  \
         --experiment_dir=${EXPERIMENT_DIR}  \
         --experiment_name=${EXPERIMENT_NAME} \
         --overwrite=${OVERWRITE} \
@@ -313,8 +322,8 @@ if [[ ! -z ${SUBMISSION_PATH+x} ]]; then
     RETURN_CODE=$?
 
     if [[ $INTERNAL_CONTRIBUTOR_MODE == "true" ]]; then 
-        /google-cloud-sdk/bin/gsutil -m cp -r ${EXPERIMENT_DIR}/${EXPERIMENT_NAME}/${WORKLOAD}_${FRAMEWORK} ${EXPERIMENT_BUCKET}/${EXPERIMENT_NAME}/
-        /google-cloud-sdk/bin/gsutil -m cp ${LOG_FILE} ${EXPERIMENT_BUCKET}/${EXPERIMENT_NAME}/${WORKLOAD}_${FRAMEWORK}/
+        /google-cloud-sdk/bin/gsutil -m cp -r ${EXPERIMENT_DIR}/${EXPERIMENT_NAME}/${WORKLOAD}_${FRAMEWORK} ${EXPERIMENT_LOGS_BUCKET}/${EXPERIMENT_NAME}/
+        /google-cloud-sdk/bin/gsutil -m cp ${LOG_FILE} ${EXPERIMENT_LOGS_BUCKET}/${EXPERIMENT_NAME}/${WORKLOAD}_${FRAMEWORK}/
     fi
 
 fi

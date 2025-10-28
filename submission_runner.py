@@ -17,40 +17,42 @@ python3 submission_runner.py \
 import datetime
 import gc
 import importlib
+from inspect import signature
 import itertools
 import json
 import os
 import struct
 import time
+from types import MappingProxyType
 from typing import Any, Dict, Optional, Tuple
 
 from absl import app
 from absl import flags
 from absl import logging
 import jax
+import tensorflow as tf
 import torch
 import torch.distributed as dist
-
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Disables tensorRT, cuda warnings.
-import tensorflow as tf
 
 # Hide any GPUs form TensorFlow. Otherwise TF might reserve memory and make
 # it unavailable to JAX.
 tf.config.set_visible_devices([], 'GPU')
 
-from algorithmic_efficiency import checkpoint_utils
-from algorithmic_efficiency import halton
-from algorithmic_efficiency import logger_utils
-from algorithmic_efficiency import random_utils as prng
-from algorithmic_efficiency import spec
-from algorithmic_efficiency.profiler import PassThroughProfiler
-from algorithmic_efficiency.profiler import Profiler
-from algorithmic_efficiency.pytorch_utils import pytorch_init
-from algorithmic_efficiency.pytorch_utils import pytorch_setup
-from algorithmic_efficiency.pytorch_utils import sync_ddp_time
-from algorithmic_efficiency.workloads import workloads
+from algoperf import checkpoint_utils
+from algoperf import halton
+from algoperf import logger_utils
+from algoperf import random_utils as prng
+from algoperf import spec
+from algoperf.profiler import PassThroughProfiler
+from algoperf.profiler import Profiler
+from algoperf.pytorch_utils import pytorch_init
+from algoperf.pytorch_utils import pytorch_setup
+from algoperf.pytorch_utils import sync_ddp_time
+from algoperf.workloads import workloads
 
-# disable only for deepspeech if it works fine for other workloads.
+# Environment variables
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Disables tensorRT, cuda warnings.
+# disable only for deepspeech if it works fine for other workloads
 os.environ['XLA_FLAGS'] = '--xla_gpu_enable_triton_gemm=false'
 
 # TODO(znado): make a nicer registry of workloads that lookup in.
@@ -200,6 +202,7 @@ def train_once(
     init_optimizer_state: spec.InitOptimizerFn,
     update_params: spec.UpdateParamsFn,
     data_selection: spec.DataSelectionFn,
+    prepare_for_eval: Optional[spec.PrepareForEvalFn],
     hyperparameters: Optional[spec.Hyperparameters],
     rng_seed: int,
     rng: spec.RandomState,
@@ -239,8 +242,9 @@ def train_once(
           'ogbg',
           'criteo1tb',
           'imagenet_vit',
+          'librispeech_deepspeech'
       ]
-      eager_backend_workloads = ['librispeech_deepspeech']
+      eager_backend_workloads = []
       aot_eager_backend_workloads = []
       loss_compilation_workloads = [
           'fastmri', 'librispeech_deepspeech', 'ogbg', 'wmt'
@@ -273,6 +277,10 @@ def train_once(
                                            hyperparameters,
                                            opt_init_rng)
   logging.info('Initializing metrics bundle.')
+
+  # Check if 'train_state' is in the function signature
+  needs_train_state = 'train_state' in signature(update_params).parameters
+
   # Bookkeeping.
   train_state = {
       'validation_goal_reached': False,
@@ -335,7 +343,9 @@ def train_once(
       not train_state['training_complete']:
 
     step_rng = prng.fold_in(rng, global_step)
-    data_select_rng, update_rng, eval_rng = prng.split(step_rng, 3)
+
+    data_select_rng, update_rng, prep_eval_rng, eval_rng = \
+      prng.split(step_rng, 4)
 
     with profiler.profile('Data selection'):
       batch = data_selection(workload,
@@ -359,7 +369,9 @@ def train_once(
             optimizer_state=optimizer_state,
             eval_results=eval_results,
             global_step=global_step,
-            rng=update_rng)
+            rng=update_rng,
+            **({'train_state': MappingProxyType(train_state)}
+               if needs_train_state else {}))
     except spec.TrainingCompleteError:
       train_state['training_complete'] = True
     global_step += 1
@@ -370,100 +382,130 @@ def train_once(
 
     train_state['accumulated_submission_time'] += (
         train_step_end_time - train_state['last_step_end_time'])
-    # Use 3x the runtime budget for the self-tuning ruleset.
-    max_allowed_runtime_sec = (
-        workload.max_allowed_runtime_sec if FLAGS.tuning_ruleset == 'external'
-        else 3 * workload.max_allowed_runtime_sec)
-    train_state['is_time_remaining'] = (
-        train_state['accumulated_submission_time'] < max_allowed_runtime_sec)
+
     # Check if submission is eligible for an untimed eval.
     if ((train_step_end_time - train_state['last_eval_time']) >=
         workload.eval_period_time_sec or train_state['training_complete']):
-      with profiler.profile('Evaluation'):
-        del batch
-        _reset_cuda_mem()
 
-        try:
-          eval_start_time = get_time()
-          latest_eval_result = workload.eval_model(global_eval_batch_size,
-                                                   model_params,
-                                                   model_state,
-                                                   eval_rng,
-                                                   data_dir,
-                                                   imagenet_v2_data_dir,
-                                                   global_step)
-          # Check if targets reached.
-          # Note that this is one of the stopping conditions for the length of
-          # a training run. To score the run we only consider the time
-          # to validation target retrospectively.
-          train_state['validation_goal_reached'] = (
-              workload.has_reached_validation_target(latest_eval_result) or
-              train_state['validation_goal_reached'])
-          train_state['test_goal_reached'] = (
-              workload.has_reached_test_target(latest_eval_result) or
-              train_state['test_goal_reached'])
-          goals_reached = (
-              train_state['validation_goal_reached'] and
-              train_state['test_goal_reached'])
-          # Save last eval time.
-          eval_end_time = get_time()
-          train_state['last_eval_time'] = eval_end_time
+      # Prepare for evaluation (timed).
+      if prepare_for_eval is not None:
 
-          # Accumulate eval time.
-          train_state[
-              'accumulated_eval_time'] += eval_end_time - eval_start_time
+        with profiler.profile('Prepare for eval'):
+          del batch
+          prepare_for_eval_start_time = get_time()
+          optimizer_state, model_params, model_state = prepare_for_eval(
+              workload=workload,
+              current_param_container=model_params,
+              current_params_types=workload.model_params_types,
+              model_state=model_state,
+              hyperparameters=hyperparameters,
+              loss_type=workload.loss_type,
+              optimizer_state=optimizer_state,
+              eval_results=eval_results,
+              global_step=global_step,
+              rng=prep_eval_rng)
+          prepare_for_eval_end_time = get_time()
 
-          # Add times to eval results for logging.
-          latest_eval_result['score'] = (
-              train_state['accumulated_submission_time'])
-          latest_eval_result[
-              'total_duration'] = eval_end_time - global_start_time
-          latest_eval_result['accumulated_submission_time'] = train_state[
-              'accumulated_submission_time']
-          latest_eval_result['accumulated_eval_time'] = train_state[
-              'accumulated_eval_time']
-          latest_eval_result['accumulated_logging_time'] = train_state[
-              'accumulated_logging_time']
-          time_since_start = latest_eval_result['total_duration']
-          logging.info(f'Time since start: {time_since_start:.2f}s, '
-                       f'\tStep: {global_step}, \t{latest_eval_result}')
-          eval_results.append((global_step, latest_eval_result))
+        # Update sumbission time.
+        train_state['accumulated_submission_time'] += (
+            prepare_for_eval_end_time - prepare_for_eval_start_time)
 
-          logging_start_time = get_time()
+      # Check if time is remaining,
+      # use 1.5x the runtime budget for the self-tuning ruleset.
+      max_allowed_runtime_sec = (
+          workload.max_allowed_runtime_sec if FLAGS.tuning_ruleset == 'external'
+          else 1.5 * workload.max_allowed_runtime_sec)
+      train_state['is_time_remaining'] = (
+          train_state['accumulated_submission_time'] < max_allowed_runtime_sec)
 
-          if log_dir is not None and RANK == 0:
-            metrics_logger.append_scalar_metrics(
-                latest_eval_result,
-                global_step=global_step,
-                preemption_count=preemption_count,
-                is_eval=True,
-            )
-            if save_checkpoints:
-              checkpoint_utils.save_checkpoint(
-                  framework=FLAGS.framework,
-                  optimizer_state=optimizer_state,
-                  model_params=model_params,
-                  model_state=model_state,
-                  train_state=train_state,
-                  eval_results=eval_results,
-                  global_step=global_step,
-                  preemption_count=preemption_count,
-                  checkpoint_dir=log_dir,
-                  save_intermediate_checkpoints=FLAGS
-                  .save_intermediate_checkpoints)
+      # Eval if time is remaining (untimed).
+      if train_state['is_time_remaining']:
 
-          logging_end_time = get_time()
-          train_state['accumulated_logging_time'] += (
-              logging_end_time - logging_start_time)
-
+        with profiler.profile('Evaluation'):
           _reset_cuda_mem()
 
-        except RuntimeError as e:
-          logging.exception(f'Eval step {global_step} error.\n')
-          if 'out of memory' in str(e):
-            logging.warning('Error: GPU out of memory during eval during step '
-                            f'{global_step}, error : {str(e)}.')
+          try:
+            eval_start_time = get_time()
+            latest_eval_result = workload.eval_model(global_eval_batch_size,
+                                                     model_params,
+                                                     model_state,
+                                                     eval_rng,
+                                                     data_dir,
+                                                     imagenet_v2_data_dir,
+                                                     global_step)
+            # Check if targets reached.
+            # Note that this is one of the stopping conditions for the length of
+            # a training run. To score the run we only consider the time
+            # to validation target retrospectively.
+            train_state['validation_goal_reached'] = (
+                workload.has_reached_validation_target(latest_eval_result) or
+                train_state['validation_goal_reached'])
+            train_state['test_goal_reached'] = (
+                workload.has_reached_test_target(latest_eval_result) or
+                train_state['test_goal_reached'])
+            goals_reached = (
+                train_state['validation_goal_reached'] and
+                train_state['test_goal_reached'])
+            # Save last eval time.
+            eval_end_time = get_time()
+            train_state['last_eval_time'] = eval_end_time
+
+            # Accumulate eval time.
+            train_state[
+                'accumulated_eval_time'] += eval_end_time - eval_start_time
+
+            # Add times to eval results for logging.
+            latest_eval_result['score'] = (
+                train_state['accumulated_submission_time'])
+            latest_eval_result[
+                'total_duration'] = eval_end_time - global_start_time
+            latest_eval_result['accumulated_submission_time'] = train_state[
+                'accumulated_submission_time']
+            latest_eval_result['accumulated_eval_time'] = train_state[
+                'accumulated_eval_time']
+            latest_eval_result['accumulated_logging_time'] = train_state[
+                'accumulated_logging_time']
+            time_since_start = latest_eval_result['total_duration']
+            logging.info(f'Time since start: {time_since_start:.2f}s, '
+                         f'\tStep: {global_step}, \t{latest_eval_result}')
+            eval_results.append((global_step, latest_eval_result))
+
+            logging_start_time = get_time()
+
+            if log_dir is not None and RANK == 0:
+              metrics_logger.append_scalar_metrics(
+                  latest_eval_result,
+                  global_step=global_step,
+                  preemption_count=preemption_count,
+                  is_eval=True,
+              )
+              if save_checkpoints:
+                checkpoint_utils.save_checkpoint(
+                    framework=FLAGS.framework,
+                    optimizer_state=optimizer_state,
+                    model_params=model_params,
+                    model_state=model_state,
+                    train_state=train_state,
+                    eval_results=eval_results,
+                    global_step=global_step,
+                    preemption_count=preemption_count,
+                    checkpoint_dir=log_dir,
+                    save_intermediate_checkpoints=FLAGS
+                    .save_intermediate_checkpoints)
+
+            logging_end_time = get_time()
+            train_state['accumulated_logging_time'] += (
+                logging_end_time - logging_start_time)
+
             _reset_cuda_mem()
+
+          except RuntimeError as e:
+            logging.exception(f'Eval step {global_step} error.\n')
+            if 'out of memory' in str(e):
+              logging.warning(
+                  'Error: GPU out of memory during eval during step '
+                  f'{global_step}, error : {str(e)}.')
+              _reset_cuda_mem()
 
     train_state['last_step_end_time'] = get_time()
 
@@ -518,6 +560,7 @@ def score_submission_on_workload(workload: spec.Workload,
   init_optimizer_state = submission_module.init_optimizer_state
   update_params = submission_module.update_params
   data_selection = submission_module.data_selection
+  prepare_for_eval = getattr(submission_module, 'prepare_for_eval', None)
   try:
     global_batch_size = submission_module.get_batch_size(workload_name)
   except ValueError:
@@ -590,6 +633,7 @@ def score_submission_on_workload(workload: spec.Workload,
                                      data_dir, imagenet_v2_data_dir,
                                      init_optimizer_state,
                                      update_params, data_selection,
+                                     prepare_for_eval,
                                      hyperparameters,
                                      rng_seed,
                                      rng,
@@ -624,7 +668,7 @@ def score_submission_on_workload(workload: spec.Workload,
       score, _ = train_once(
           workload, workload_name, global_batch_size, global_eval_batch_size,
           data_dir, imagenet_v2_data_dir,
-          init_optimizer_state, update_params, data_selection,
+          init_optimizer_state, update_params, data_selection, prepare_for_eval,
           None, rng_seed, rng, profiler, max_global_steps, log_dir,
           save_checkpoints=save_checkpoints)
   return score
@@ -635,6 +679,14 @@ def main(_):
     profiler = Profiler()
   else:
     profiler = PassThroughProfiler()
+
+  # Set PyTorch environment variables before initializing w DDP
+  base_workload = workloads.get_base_workload_name(FLAGS.workload)
+  if base_workload == 'librispeech_conformer':
+    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
+  if FLAGS.set_pytorch_max_split_size:
+    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:256'
 
   if FLAGS.framework == 'pytorch':
     pytorch_init(USE_PYTORCH_DDP, RANK, profiler)
@@ -647,13 +699,13 @@ def main(_):
 
   workload_metadata = WORKLOADS[FLAGS.workload]
 
-  # Prevent OOM on librispeech conformer.
-  base_workload = workloads.get_base_workload_name(FLAGS.workload)
-  if base_workload == 'librispeech_conformer':
-    os.environ['XLA_PYTHON_CLIENT_MEM_FRACTION'] = '0.85'
-
-  if FLAGS.set_pytorch_max_split_size:
-    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:256'
+  if base_workload in [
+      'librispeech_conformer',
+      'librispeech_deepspeech',
+      'imagenet_vit',
+      'criteo1tb'
+  ]:
+    os.environ['XLA_PYTHON_CLIENT_MEM_FRACTION'] = '0.80'
 
   # Extend path according to framework.
   workload_metadata['workload_path'] = os.path.join(

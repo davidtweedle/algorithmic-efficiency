@@ -6,12 +6,12 @@ os.environ['CUDA_VISIBLE_DEVICES'] = ''
 import jax
 import torch
 
-from algorithmic_efficiency import spec
-from algorithmic_efficiency.workloads.fastmri.fastmri_jax.workload import \
+from algoperf import spec
+from algoperf.workloads.fastmri.fastmri_jax.workload import \
     FastMRITanhWorkload as JaxWorkload
-from algorithmic_efficiency.workloads.fastmri.fastmri_pytorch.workload import \
+from algoperf.workloads.fastmri.fastmri_pytorch.workload import \
     FastMRITanhWorkload as PyTorchWorkload
-from tests.modeldiffs.diff import out_diff
+from tests.modeldiffs.diff import ModelDiffRunner
 
 
 def sd_transform(sd):
@@ -61,10 +61,10 @@ if __name__ == '__main__':
   image = torch.randn(2, 320, 320)
 
   jax_batch = {'inputs': image.detach().numpy()}
-  pyt_batch = {'inputs': image}
+  pytorch_batch = {'inputs': image}
 
   pytorch_model_kwargs = dict(
-      augmented_and_preprocessed_input_batch=pyt_batch,
+      augmented_and_preprocessed_input_batch=pytorch_batch,
       model_state=None,
       mode=spec.ForwardPassMode.EVAL,
       rng=None,
@@ -76,11 +76,10 @@ if __name__ == '__main__':
       rng=jax.random.PRNGKey(0),
       update_batch_norm=False)
 
-  out_diff(
+  ModelDiffRunner(
       jax_workload=jax_workload,
       pytorch_workload=pytorch_workload,
       jax_model_kwargs=jax_model_kwargs,
       pytorch_model_kwargs=pytorch_model_kwargs,
       key_transform=None,
-      sd_transform=sd_transform,
-  )
+      sd_transform=sd_transform).run()
